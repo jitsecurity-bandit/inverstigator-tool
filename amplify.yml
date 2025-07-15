@@ -1,0 +1,22 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        - echo "No build needed - Express.js app will run as-is"
+  artifacts:
+    baseDirectory: .
+    files:
+      - "**/*"
+    name: dynamodb-debug-tool
+  cache:
+    paths:
+      - node_modules/**/*
+backend:
+  phases:
+    build:
+      commands:
+        - "# No backend build needed for this Express app"

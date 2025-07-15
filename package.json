@@ -4,7 +4,9 @@
     "description": "DynamoDB JobExecutions Debug Tool",
     "main": "main.js",
     "scripts": {
-        "start": "electron .",
+        "start": "node server.js",
+        "dev": "electron .",
+        "build-web": "npm i",
         "webapp": "node server.js",
         "build": "electron-builder",
         "build-mac": "electron-builder --mac",
