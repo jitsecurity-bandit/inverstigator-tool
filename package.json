@@ -4,15 +4,7 @@
     "description": "DynamoDB JobExecutions Debug Tool",
     "main": "main.js",
     "scripts": {
-        "start": "node server.js",
-        "dev": "electron .",
-        "build-web": "npm i",
-        "webapp": "node server.js",
-        "build": "electron-builder",
-        "build-mac": "electron-builder --mac",
-        "build-win": "electron-builder --win",
-        "build-linux": "electron-builder --linux",
-        "dist": "electron-builder --publish=never"
+        "start": "node server.js"
     },
     "author": "Jit Security",
     "license": "MIT",
