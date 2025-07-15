@@ -2,7 +2,6 @@
     "name": "dynamodb-debug-tool",
     "version": "1.0.0",
     "description": "DynamoDB JobExecutions Debug Tool",
-    "main": "main.js",
     "scripts": {
         "start": "node server.js"
     },
