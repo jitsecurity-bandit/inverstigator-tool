@@ -408,7 +408,7 @@ function displayResults(results) {
                     ${additionalFields.length > 0 ? `
                         <div class="additional-fields">
                             <span class="fields-count">${additionalFields.length} fields</span>
-                            <button class="expand-btn small" onclick="toggleAdditionalFields(${index})">show</button>
+                            <button class="expand-btn small" onclick="openAdditionalDataModal(${index})">show</button>
                         </div>
                         <div class="additional-fields-content" id="additional-${index}" style="display: none;">
                             <pre>${additionalFields.join('\n')}</pre>
@@ -734,6 +734,9 @@ window.toggleCellExpansion = toggleCellExpansion;
 window.toggleAdditionalFields = toggleAdditionalFields;
 window.toggleRowExpansion = toggleRowExpansion;
 window.removeCustomFilter = removeCustomFilter;
+window.openAdditionalDataModal = openAdditionalDataModal;
+window.closeAdditionalDataModal = closeAdditionalDataModal;
+window.copyFieldValue = copyFieldValue;
 
 // Get additional fields beyond the main ones
 function getAdditionalFields(item) {
@@ -786,6 +789,206 @@ function toggleRowExpansion(index) {
         button.classList.remove('expanded');
     }
 } 
+
+// Open additional data modal
+function openAdditionalDataModal(index) {
+    const item = currentResults[index];
+    
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('additional-data-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'additional-data-modal';
+        modal.className = 'modal';
+        modal.style.display = 'none';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="additional-modal-title">Additional Data</h3>
+                    <button class="modal-close" onclick="closeAdditionalDataModal()">Close</button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-actions">
+                        <button class="modal-action-btn copy" id="additional-modal-copy-btn">Copy All Data</button>
+                    </div>
+                    <div class="additional-data-content" id="additional-data-content">
+                        <!-- Content will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Add event listeners
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.classList.contains('modal-close')) {
+                closeAdditionalDataModal();
+            }
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display === 'flex') {
+                closeAdditionalDataModal();
+            }
+        });
+    }
+    
+    const modalTitle = document.getElementById('additional-modal-title');
+    const modalContent = document.getElementById('additional-data-content');
+    const modalCopyBtn = document.getElementById('additional-modal-copy-btn');
+
+    modalTitle.textContent = `Additional Data - ${item.execution_id || 'N/A'}`;
+    
+    // Get all additional fields without truncation
+    const mainFields = ['jit_event_id', 'event_id', 'jit_event_name', 'execution_id', 'status', 'control_name', 'created_at', 'completed_at', 'errors'];
+    const additionalFields = [];
+    
+    Object.keys(item).forEach(key => {
+        if (!mainFields.includes(key)) {
+            const value = item[key];
+            if (value !== null && value !== undefined) {
+                additionalFields.push({ key, value });
+            }
+        }
+    });
+
+    if (additionalFields.length === 0) {
+        modalContent.innerHTML = '<div class="no-additional-data">No additional data available for this record.</div>';
+    } else {
+        // Group fields by type for better organization
+        const stringFields = [];
+        const objectFields = [];
+        const arrayFields = [];
+        const otherFields = [];
+
+        additionalFields.forEach(({ key, value }) => {
+            if (Array.isArray(value)) {
+                arrayFields.push({ key, value });
+            } else if (typeof value === 'object') {
+                objectFields.push({ key, value });
+            } else if (typeof value === 'string') {
+                stringFields.push({ key, value });
+            } else {
+                otherFields.push({ key, value });
+            }
+        });
+
+        let content = '';
+
+        // String fields
+        if (stringFields.length > 0) {
+            content += `
+                <div class="additional-data-section">
+                    <h4>📝 Text Fields (${stringFields.length})</h4>
+                    <div class="additional-data-grid">
+                        ${stringFields.map(({ key, value }) => `
+                            <div class="additional-data-item">
+                                <div class="additional-data-label">${key}:</div>
+                                <div class="additional-data-value string-value">${value}</div>
+                                <button class="copy-field-btn" onclick="copyFieldValue('${key}', '${value.replace(/'/g, "\\'")}')">Copy</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Other primitive fields
+        if (otherFields.length > 0) {
+            content += `
+                <div class="additional-data-section">
+                    <h4>🔢 Other Fields (${otherFields.length})</h4>
+                    <div class="additional-data-grid">
+                        ${otherFields.map(({ key, value }) => `
+                            <div class="additional-data-item">
+                                <div class="additional-data-label">${key}:</div>
+                                <div class="additional-data-value other-value">${String(value)}</div>
+                                <button class="copy-field-btn" onclick="copyFieldValue('${key}', '${String(value).replace(/'/g, "\\'")}')">Copy</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Array fields
+        if (arrayFields.length > 0) {
+            content += `
+                <div class="additional-data-section">
+                    <h4>📚 Array Fields (${arrayFields.length})</h4>
+                    ${arrayFields.map(({ key, value }) => `
+                        <div class="additional-data-complex">
+                            <div class="additional-data-complex-header">
+                                <span class="additional-data-label">${key} (${value.length} items):</span>
+                                <button class="copy-field-btn" onclick="copyFieldValue('${key}', '${JSON.stringify(value).replace(/'/g, "\\'")}')">Copy</button>
+                            </div>
+                            <div class="additional-data-json">
+                                <pre>${JSON.stringify(value, null, 2)}</pre>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Object fields
+        if (objectFields.length > 0) {
+            content += `
+                <div class="additional-data-section">
+                    <h4>🗂️ Object Fields (${objectFields.length})</h4>
+                    ${objectFields.map(({ key, value }) => `
+                        <div class="additional-data-complex">
+                            <div class="additional-data-complex-header">
+                                <span class="additional-data-label">${key}:</span>
+                                <button class="copy-field-btn" onclick="copyFieldValue('${key}', '${JSON.stringify(value).replace(/'/g, "\\'")}')">Copy</button>
+                            </div>
+                            <div class="additional-data-json">
+                                <pre>${JSON.stringify(value, null, 2)}</pre>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        modalContent.innerHTML = content;
+    }
+
+    // Set up copy all button
+    modalCopyBtn.onclick = () => {
+        const allAdditionalData = {};
+        additionalFields.forEach(({ key, value }) => {
+            allAdditionalData[key] = value;
+        });
+        
+        navigator.clipboard.writeText(JSON.stringify(allAdditionalData, null, 2)).then(() => {
+            alert('All additional data copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            alert('Failed to copy data.');
+        });
+    };
+
+    modal.style.display = 'flex';
+}
+
+// Close additional data modal
+function closeAdditionalDataModal() {
+    const modal = document.getElementById('additional-data-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Copy individual field value
+function copyFieldValue(fieldName, value) {
+    navigator.clipboard.writeText(value).then(() => {
+        alert(`${fieldName} copied to clipboard!`);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy field value.');
+    });
+}
 
 // Column resizing functionality
 function initializeColumnResizing() {
