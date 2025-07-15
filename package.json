@@ -8,36 +8,9 @@
     },
     "author": "Jit Security",
     "license": "MIT",
-    "devDependencies": {
-        "electron": "^28.0.0",
-        "electron-builder": "^24.9.1"
-    },
     "dependencies": {
         "aws-sdk": "^2.1542.0",
         "date-fns": "^3.0.6",
         "express": "^4.21.2"
-    },
-    "build": {
-        "appId": "com.jit.dynamodb-debug-tool",
-        "productName": "DynamoDB Debug Tool",
-        "directories": {
-            "output": "dist"
-        },
-        "files": [
-            "main.js",
-            "renderer.js",
-            "styles.css",
-            "index.html",
-            "node_modules/**/*"
-        ],
-        "mac": {
-            "category": "public.app-category.developer-tools"
-        },
-        "win": {
-            "target": "nsis"
-        },
-        "linux": {
-            "target": "AppImage"
-        }
     }
 }
