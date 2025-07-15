@@ -1,14 +1,27 @@
 # AWS Amplify Deployment Guide
 
-## Quick Setup
+## Important: Node.js Hosting Required
 
-### 1. Build Configuration
-- **Build command**: `npm run webapp` (or use default `npm start`)
+This is an **Express.js server application** - you need to use **Amplify Hosting with Node.js runtime**, not static hosting.
+
+## Amplify Setup Steps
+
+### 1. Create New Amplify App
+- Go to AWS Amplify Console
+- Choose "Host web app"
+- Connect your Git repository
+- **IMPORTANT**: Select "Web app" (not "Static web app")
+
+### 2. Build Configuration
+When Amplify asks for build settings:
+
+- **Build command**: Leave empty or use `echo "No build needed"`
+- **Output directory**: `.` (current directory)
 - **Start command**: `npm start`
-- **Node version**: Latest LTS (18.x or 20.x)
+- **Node.js version**: 18.x or 20.x
 
-### 2. Environment Variables (Required)
-Set these in Amplify Console → App Settings → Environment Variables:
+### 3. Environment Variables (Critical!)
+In Amplify Console → App Settings → Environment Variables, add:
 
 ```
 AWS_REGION=us-east-1
@@ -16,79 +29,34 @@ AWS_ACCESS_KEY_ID=your_access_key_here
 AWS_SECRET_ACCESS_KEY=your_secret_key_here
 ```
 
-### 3. Amplify Build Settings
-The `amplify.yml` file is already configured. If you need to customize:
+### 4. Advanced Settings
+- **Runtime**: Node.js
+- **Runtime version**: 18.x (or latest LTS)
+- **Platform**: Web
 
-```yaml
-version: 1
-frontend:
-  phases:
-    preBuild:
-      commands:
-        - npm ci
-    build:
-      commands:
-        - echo "No build needed - Express.js app will run as-is"
-  artifacts:
-    baseDirectory: .
-    files:
-      - '**/*'
-    name: dynamodb-debug-tool
-  cache:
-    paths:
-      - node_modules/**/*
-```
+## Alternative: Use Elastic Beanstalk or App Runner
 
-### 4. IAM Permissions
-Your AWS credentials need DynamoDB permissions:
+If Amplify Node.js hosting doesn't work, consider:
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:GetItem",
-        "dynamodb:Query",
-        "dynamodb:Scan",
-        "dynamodb:DescribeTable",
-        "dynamodb:ListTables"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "sts:GetCallerIdentity"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+1. **AWS App Runner**: Better for containerized Node.js apps
+2. **Elastic Beanstalk**: Traditional Node.js hosting
+3. **ECS/Fargate**: For Docker deployment
 
-## Deployment Steps
-
-1. **Connect Repository**: Link your GitHub/GitLab repo to Amplify
-2. **Configure Build**: Use the provided `amplify.yml` or set manually:
-   - Build command: `npm run webapp`
-   - Start command: `npm start`  
-3. **Set Environment Variables**: Add AWS credentials in Amplify Console
-4. **Deploy**: Amplify will handle the rest
-
-## Testing Locally
+## Local Testing
 ```bash
-# Set environment variables
 export AWS_REGION=us-east-1
 export AWS_ACCESS_KEY_ID=your_key
 export AWS_SECRET_ACCESS_KEY=your_secret
-
-# Run the app
-npm run webapp
+npm start
 ```
 
-## Notes
-- The app requires AWS credentials to access DynamoDB
-- Port will be automatically assigned by Amplify (ignore local PORT=3000)
-- The app validates AWS credentials on startup and will exit if invalid 
+## Troubleshooting
+
+- **"No index.html found"**: This means Amplify is treating it as static hosting. Make sure you selected "Web app" not "Static web app"
+- **"Build failed"**: Check that Node.js runtime is selected
+- **"App crashes on startup"**: Verify AWS environment variables are set
+
+## Files Added for Amplify
+- ✅ `amplify.yml` - Build configuration
+- ✅ `index.html` - Fallback page (shouldn't be needed for Node.js hosting)
+- ✅ Updated `package.json` with proper start script 
