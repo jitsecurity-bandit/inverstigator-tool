@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DynamoDB Debug Tool - Web App</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Tab-specific styles */
+        .tabs {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #475569;
+        }
+        
+        .tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            background: #334155;
+            border: none;
+            color: #e2e8f0;
+            border-radius: 8px 8px 0 0;
+            margin-right: 5px;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .tab:hover {
+            background: #475569;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Debug section styles */
+        .debug-section {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid #475569;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .debug-section h3 {
+            color: #f87171;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            border-bottom: 2px solid #f87171;
+            padding-bottom: 0.5rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #60a5fa;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .debug-actions {
+            display: flex;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .debug-btn {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(248, 113, 113, 0.3);
+        }
+        
+        .debug-btn:hover {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(248, 113, 113, 0.4);
+        }
+        
+        .debug-btn:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .stuck-pr-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .stuck-pr-table th,
+        .stuck-pr-table td {
+            border: 1px solid #475569;
+            padding: 1rem;
+            text-align: left;
+        }
+        
+        .stuck-pr-table th {
+            background: #334155;
+            color: #60a5fa;
+            font-weight: 600;
+        }
+        
+        .stuck-pr-table tr:nth-child(even) {
+            background: #2d3748;
+        }
+        
+        .stuck-pr-table tr:hover {
+            background: #374151;
+        }
+        
+        .pr-link {
+            color: #60a5fa;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .pr-link:hover {
+            text-decoration: underline;
+            color: #93c5fd;
+        }
+        
+        .debug-results-section {
+            margin-top: 2rem;
+        }
+        
+        .debug-results-section h4 {
+            color: #e2e8f0;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        /* Enhanced table styles for new functionality */
+        .expandable-cell {
+            position: relative;
+        }
+
+        .cell-content {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cell-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .expand-cell-btn {
+            background: #475569;
+            border: none;
+            color: #e2e8f0;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+
+        .expand-cell-btn:hover {
+            background: #60a5fa;
+        }
+
+        .errors-cell {
+            max-width: 200px;
+        }
+
+        .error-cell {
+            position: relative;
+        }
+
+        .error-preview {
+            color: #f87171;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-count {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+
+        .error-full {
+            background: #1e293b;
+            border: 1px solid #f87171;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .error-full pre {
+            margin: 0;
+            color: #f87171;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+        }
+
+        .additional-fields-cell {
+            max-width: 200px;
+        }
+
+        .additional-fields {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .fields-count {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .additional-fields-content {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .additional-fields-content pre {
+            margin: 0;
+            color: #e2e8f0;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+        }
+
+        .expand-btn {
+            background: #475569;
+            border: none;
+            color: #e2e8f0;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .expand-btn:hover {
+            background: #60a5fa;
+        }
+
+        .expand-btn.expanded {
+            background: #60a5fa;
+        }
+
+        .expand-btn.small {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
+        }
+
+        .expanded-row {
+            background: #0f172a !important;
+        }
+
+        .expanded-content {
+            padding: 1.5rem;
+            border-top: 2px solid #475569;
+        }
+
+        .expanded-content h4 {
+            color: #60a5fa;
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+        }
+
+        .expanded-content pre {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            padding: 1rem;
+            color: #e2e8f0;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .action-btn {
+            background: #475569;
+            border: none;
+            color: #e2e8f0;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #60a5fa;
+        }
+
+        .action-btn.view {
+            background: #059669;
+        }
+
+        .action-btn.view:hover {
+            background: #047857;
+        }
+
+        .action-btn.copy {
+            background: #7c3aed;
+        }
+
+        .action-btn.copy:hover {
+            background: #6d28d9;
+        }
+
+        .action-btn.expand-row {
+            background: #ea580c;
+        }
+
+        .action-btn.expand-row:hover {
+            background: #dc2626;
+        }
+
+        .action-btn.expanded {
+            background: #dc2626;
+        }
+
+        .actions-cell {
+            white-space: nowrap;
+        }
+
+        /* Enhanced expanded view styles */
+        .expanded-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #475569;
+        }
+
+        .expanded-header h4 {
+            margin: 0;
+            color: #60a5fa;
+            font-size: 1.3rem;
+        }
+
+        .expanded-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .expanded-section {
+            background: #334155;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .expanded-section h5 {
+            margin: 0 0 1rem 0;
+            color: #a78bfa;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-bottom: 1px solid #475569;
+            padding-bottom: 0.5rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: #e2e8f0;
+            font-weight: 400;
+            word-break: break-all;
+        }
+
+        .info-value.status-started {
+            color: #fbbf24;
+        }
+
+        .info-value.status-success {
+            color: #10b981;
+        }
+
+        .info-value.status-failure {
+            color: #f87171;
+        }
+
+        .info-value.status-timeout {
+            color: #f97316;
+        }
+
+        .context-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .context-subsection {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .context-subsection h6 {
+            margin: 0 0 1rem 0;
+            color: #60a5fa;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .errors-expanded {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .error-item {
+            background: #1e293b;
+            border: 1px solid #f87171;
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .error-header {
+            color: #f87171;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-content {
+            margin: 0;
+            color: #f87171;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .raw-json-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .raw-json {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            padding: 1rem;
+            color: #e2e8f0;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            max-height: 600px;
+            overflow-y: auto;
+            margin: 0;
+        }
+
+        /* Responsive design for expanded view */
+        @media (max-width: 768px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .expanded-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+        }
+
+        /* Hide the old inline expansion */
+        .expanded-row {
+            display: none !important;
+        }
+
+        /* Large modal window styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 2rem;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid #475569;
+            border-radius: 12px;
+            width: 95%;
+            max-width: 1400px;
+            height: 90%;
+            max-height: 900px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid #475569;
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #60a5fa;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: #ef4444;
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #dc2626;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        .modal-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .modal-section {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .modal-section h4 {
+            margin: 0 0 1.5rem 0;
+            color: #a78bfa;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 0.5rem;
+        }
+
+        .modal-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .modal-info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .modal-info-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .modal-info-value {
+            font-size: 1rem;
+            color: #e2e8f0;
+            font-weight: 400;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        .modal-info-value.status-started {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+
+        .modal-info-value.status-success {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .modal-info-value.status-failure {
+            color: #f87171;
+            font-weight: 600;
+        }
+
+        .modal-info-value.status-timeout {
+            color: #f97316;
+            font-weight: 600;
+        }
+
+        .modal-errors {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .modal-error-item {
+            background: #1e293b;
+            border: 1px solid #f87171;
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .modal-error-header {
+            color: #f87171;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .modal-error-content {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .modal-error-content pre {
+            margin: 0;
+            color: #f87171;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+
+        .modal-context-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .modal-context-subsection {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 1.5rem;
+        }
+
+        .modal-context-subsection h5 {
+            margin: 0 0 1rem 0;
+            color: #60a5fa;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .modal-raw-json {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 1.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .modal-raw-json pre {
+            margin: 0;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-action-btn {
+            background: #475569;
+            border: none;
+            color: #e2e8f0;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .modal-action-btn:hover {
+            background: #60a5fa;
+        }
+
+        .modal-action-btn.copy {
+            background: #7c3aed;
+        }
+
+        .modal-action-btn.copy:hover {
+            background: #6d28d9;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>🔍 DynamoDB Debug Tool</h1>
+            <div class="header-controls">
+                <div class="aws-status" id="aws-status">
+                    <div class="status-indicator no-profile"></div>
+                    <span class="status-text">Checking AWS connection...</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('query')">Query Tool</button>
+                <button class="tab" onclick="switchTab('debug')">Error Debugging</button>
+            </div>
+
+            <div id="query-tab" class="tab-content active">
+                <section class="filters-section">
+                    <h2>Query Parameters</h2>
+                    <form id="query-form" class="filters-form">
+                        <div class="form-group">
+                            <label for="tenant-id">Tenant ID *</label>
+                            <input type="text" id="tenant-id" placeholder="e.g., c21e94b3-e27a-4f26-8035-5028ac81c818" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status">Status *</label>
+                            <select id="status" required>
+                                <option value="">Select Status</option>
+                                <option value="started">Started</option>
+                                <option value="success">Success</option>
+                                <option value="failure">Failure</option>
+                                <option value="timeout">Timeout</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="limit">Limit</label>
+                            <input type="number" id="limit" value="50" min="1" max="1000">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="start-date">Start Date</label>
+                            <input type="datetime-local" id="start-date">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="end-date">End Date</label>
+                            <input type="datetime-local" id="end-date">
+                        </div>
+
+                        <div class="custom-filters-section">
+                            <div class="custom-filters-header">
+                                <label>Custom Filters</label>
+                                <div>
+                                    <button type="button" id="add-filter" class="btn-small">Add Filter</button>
+                                    <button type="button" id="clear-filters" class="btn-small">Clear All</button>
+                                </div>
+                            </div>
+                            <div id="custom-filters-container"></div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <span class="btn-text">Query DynamoDB</span>
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <div id="error-message" class="error-message" style="display: none;"></div>
+
+                <section class="results-section">
+                    <div class="results-header">
+                        <h2>Results</h2>
+                        <div class="results-actions">
+                            <button id="export-json" class="btn btn-outline" disabled>Export JSON</button>
+                            <button id="export-csv" class="btn btn-outline" disabled>Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="results-count" id="results-count"></div>
+
+                    <div class="table-container">
+                        <table id="results-table" class="results-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th data-column="jit_event_id">JIT Event ID</th>
+                                    <th data-column="jit_event_name">Event Name</th>
+                                    <th data-column="execution_id">Execution ID</th>
+                                    <th data-column="status">Status</th>
+                                    <th data-column="control_name">Control Name</th>
+                                    <th data-column="created_at">Created At</th>
+                                    <th data-column="completed_at">Completed At</th>
+                                    <th data-column="errors">Errors</th>
+                                    <th>Additional Data</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-tbody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <div id="debug-tab" class="tab-content">
+                <div class="debug-section">
+                    <h3>🚨 Error Debugging Tools</h3>
+                    
+                    <div class="form-group">
+                        <label for="debug-tenant-id">Tenant ID for Debugging *</label>
+                        <input type="text" id="debug-tenant-id" placeholder="e.g., c21e94b3-e27a-4f26-8035-5028ac81c818">
+                    </div>
+
+                    <div class="debug-actions">
+                        <button class="debug-btn" id="stuck-pr-btn">Find Stuck PR Executions</button>
+                        <button class="debug-btn" id="clear-debug-btn">Clear Results</button>
+                    </div>
+
+                    <div id="stuck-pr-stats" class="debug-results-section" style="display: none;">
+                        <h4>📊 Stuck PR Statistics</h4>
+                        <div class="stats-grid" id="stats-grid"></div>
+                    </div>
+
+                    <div id="stuck-pr-results" class="debug-results-section" style="display: none;">
+                        <h4>📋 Stuck PR Executions (Deduplicated)</h4>
+                        <div class="table-container">
+                            <table class="stuck-pr-table">
+                                <thead>
+                                    <tr>
+                                        <th>Urgency</th>
+                                        <th>Time Elapsed</th>
+                                        <th>JIT Event ID</th>
+                                        <th>Status</th>
+                                        <th>Created At</th>
+                                        <th>Repository</th>
+                                        <th>Owner</th>
+                                        <th>PR #</th>
+                                        <th>PR Title</th>
+                                        <th>Branch</th>
+                                        <th>Commit SHA</th>
+                                        <th>Event Type</th>
+                                        <th>Link</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="stuck-pr-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Large Modal Window -->
+    <div id="record-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Record Details</h3>
+                <button class="modal-close" onclick="closeRecordModal()">Close</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-actions">
+                    <button class="modal-action-btn copy" id="modal-copy-btn">Copy Full JSON</button>
+                    <button class="modal-action-btn" id="modal-copy-id-btn">Copy Execution ID</button>
+                </div>
+                <div class="modal-sections" id="modal-sections">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentResults = [];
+        let filterCounter = 0;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            updateAwsStatus();
+            addCustomFilter();
+        });
+
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to selected tab
+            event.target.classList.add('active');
+        }
+
+        async function updateAwsStatus() {
+            try {
+                const response = await fetch('/api/aws-config');
+                const config = await response.json();
+                
+                const statusIndicator = document.querySelector('.status-indicator');
+                const statusText = document.querySelector('.status-text');
+                
+                if (config.error) {
+                    statusIndicator.className = 'status-indicator error';
+                    statusText.textContent = `AWS Error: ${config.error}`;
+                } else if (config.hasCredentials) {
+                    statusIndicator.className = 'status-indicator connected';
+                    statusText.textContent = `Connected: ${config.region}`;
+                } else {
+                    statusIndicator.className = 'status-indicator error';
+                    statusText.textContent = 'No AWS credentials found';
+                }
+            } catch (error) {
+                console.error('Error checking AWS connection:', error);
+                const statusIndicator = document.querySelector('.status-indicator');
+                const statusText = document.querySelector('.status-text');
+                statusIndicator.className = 'status-indicator error';
+                statusText.textContent = 'Connection error';
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('query-form').addEventListener('submit', handleQuery);
+            document.getElementById('add-filter').addEventListener('click', () => addCustomFilter());
+            document.getElementById('clear-filters').addEventListener('click', clearFilters);
+            document.getElementById('stuck-pr-btn').addEventListener('click', findStuckPRExecutions);
+            document.getElementById('clear-debug-btn').addEventListener('click', clearDebugResults);
+            
+            // Add keyboard support for debug tenant ID input
+            document.getElementById('debug-tenant-id').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    document.getElementById('stuck-pr-btn').click();
+                }
+            });
+        }
+
+        function addCustomFilter(field = '', operator = 'contains', value = '') {
+            const container = document.getElementById('custom-filters-container');
+            const filterId = `filter-${filterCounter++}`;
+            
+            const filterDiv = document.createElement('div');
+            filterDiv.className = 'custom-filter-row';
+            filterDiv.dataset.filterId = filterId;
+            
+            filterDiv.innerHTML = `
+                <div class="filter-inputs">
+                    <input type="text" class="filter-field" placeholder="Field name (e.g., jit_event_name)" value="${field}">
+                    <select class="filter-operator">
+                        <option value="=" ${operator === '=' ? 'selected' : ''}>Equals</option>
+                        <option value="contains" ${operator === 'contains' ? 'selected' : ''}>Contains</option>
+                        <option value="begins_with" ${operator === 'begins_with' ? 'selected' : ''}>Begins With</option>
+                        <option value=">" ${operator === '>' ? 'selected' : ''}>Greater Than</option>
+                        <option value="<" ${operator === '<' ? 'selected' : ''}>Less Than</option>
+                    </select>
+                    <input type="text" class="filter-value" placeholder="Value" value="${value}">
+                    <button type="button" class="remove-filter-btn" onclick="removeCustomFilter('${filterId}')">×</button>
+                </div>
+            `;
+            
+            container.appendChild(filterDiv);
+        }
+
+        function removeCustomFilter(filterId) {
+            const filterRow = document.querySelector(`[data-filter-id="${filterId}"]`);
+            if (filterRow) {
+                filterRow.remove();
+            }
+        }
+
+        function getCustomFilters() {
+            const filters = [];
+            const filterRows = document.querySelectorAll('.custom-filter-row');
+            
+            filterRows.forEach(row => {
+                const field = row.querySelector('.filter-field').value.trim();
+                const operator = row.querySelector('.filter-operator').value.trim();
+                const value = row.querySelector('.filter-value').value.trim();
+                
+                if (field && value) {
+                    filters.push({ field, operator, value });
+                }
+            });
+            
+            return filters;
+        }
+
+        async function handleQuery(e) {
+            e.preventDefault();
+            
+            const tenantId = document.getElementById('tenant-id').value.trim();
+            const status = document.getElementById('status').value;
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const limit = parseInt(document.getElementById('limit').value) || 50;
+            const customFilters = getCustomFilters();
+            
+            if (!tenantId || !status) {
+                showError('Please fill in all required fields');
+                return;
+            }
+            
+            setLoadingState(true);
+            hideError();
+            
+            try {
+                const params = {
+                    tenantId,
+                    status,
+                    startDate: startDate ? new Date(startDate).toISOString() : null,
+                    endDate: endDate ? new Date(endDate).toISOString() : null,
+                    limit,
+                    customFilters
+                };
+                
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+                
+                const result = await response.json();
+                console.log('Query response:', result);
+                
+                if (result.success) {
+                    console.log('Query successful, data:', result.data);
+                    currentResults = result.data;
+                    displayResults(result.data);
+                    updateResultsCount(result.count, result.scannedCount);
+                } else {
+                    console.error('Query failed:', result.error);
+                    showError(`Query failed: ${result.error}`);
+                    currentResults = [];
+                    displayResults([]);
+                    updateResultsCount(0, 0);
+                }
+            } catch (error) {
+                console.error('Query error:', error);
+                showError(`Unexpected error: ${error.message}`);
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        async function findStuckPRExecutions() {
+            const tenantId = document.getElementById('debug-tenant-id').value.trim();
+            
+            if (!tenantId) {
+                showError('Please enter a tenant ID for debugging');
+                return;
+            }
+            
+            const btn = document.getElementById('stuck-pr-btn');
+            btn.disabled = true;
+            btn.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('/api/stuck-pr-executions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenantId })
+                });
+                
+                const result = await response.json();
+                console.log('Stuck PR response:', result);
+                
+                if (result.success) {
+                    console.log('Statistics:', result.statistics);
+                    console.log('Data:', result.data);
+                    displayStuckPRStats(result.statistics);
+                    displayStuckPRResults(result.data);
+                } else {
+                    console.error('Query failed:', result.error);
+                    showError(`Failed to find stuck PRs: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Stuck PR query error:', error);
+                showError(`Error: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Find Stuck PR Executions';
+            }
+        }
+
+        function displayStuckPRStats(stats) {
+            console.log('displayStuckPRStats called with:', stats);
+            const statsGrid = document.getElementById('stats-grid');
+            const statsSection = document.getElementById('stuck-pr-stats');
+            
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${stats.total_stuck_prs}</div>
+                    <div class="stat-label">Total Stuck PRs</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #ef4444;">
+                    <div class="stat-value" style="color: #ef4444;">${stats.critical_prs}</div>
+                    <div class="stat-label">Critical (>10min)</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #f97316;">
+                    <div class="stat-value" style="color: #f97316;">${stats.warning_prs}</div>
+                    <div class="stat-label">Warning (3-10min)</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #10b981;">
+                    <div class="stat-value" style="color: #10b981;">${stats.recent_prs}</div>
+                    <div class="stat-label">Recent (<3min)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.total_pr_events_processed}</div>
+                    <div class="stat-label">Total PR Events</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.total_unique_prs_analyzed}</div>
+                    <div class="stat-label">Unique PRs Analyzed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.total_scanned}</div>
+                    <div class="stat-label">Total Items Scanned</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.queries_executed}</div>
+                    <div class="stat-label">Queries Executed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.repositories.length}</div>
+                    <div class="stat-label">Repositories</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.owners.length}</div>
+                    <div class="stat-label">Owners</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.branches.length}</div>
+                    <div class="stat-label">Branches</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.date_range_start ? formatDate(stats.date_range_start) : 'N/A'}</div>
+                    <div class="stat-label">Search From Date</div>
+                </div>
+            `;
+            
+            statsSection.style.display = 'block';
+            console.log('Stats section displayed');
+        }
+
+        function displayStuckPRResults(data) {
+            console.log('displayStuckPRResults called with:', data);
+            const tbody = document.getElementById('stuck-pr-tbody');
+            const resultsSection = document.getElementById('stuck-pr-results');
+            
+            // Update the table headers to include new columns
+            const tableHeader = resultsSection.querySelector('thead tr');
+            tableHeader.innerHTML = `
+                <th>Urgency</th>
+                <th>Time Elapsed</th>
+                <th>JIT Event ID</th>
+                <th>Status</th>
+                <th>Created At</th>
+                <th>Repository</th>
+                <th>Owner</th>
+                <th>PR #</th>
+                <th>PR Title</th>
+                <th>Branch</th>
+                <th>Commit SHA</th>
+                <th>Event Type</th>
+                <th>Link</th>
+            `;
+            
+            tbody.innerHTML = '';
+            
+            data.forEach(pr => {
+                const row = document.createElement('tr');
+                
+                // Determine urgency styling
+                let urgencyBadge = '';
+                let rowStyle = '';
+                if (pr.urgency_level === 'red') {
+                    urgencyBadge = '<span style="background: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; font-weight: 600;">🔴 CRITICAL</span>';
+                    rowStyle = 'background-color: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444;';
+                } else if (pr.urgency_level === 'orange') {
+                    urgencyBadge = '<span style="background: #f97316; color: white; padding: 4px 8px; border-radius: 4px; font-weight: 600;">🟠 WARNING</span>';
+                    rowStyle = 'background-color: rgba(249, 115, 22, 0.1); border-left: 4px solid #f97316;';
+                } else {
+                    urgencyBadge = '<span style="background: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-weight: 600;">🟢 RECENT</span>';
+                    rowStyle = 'background-color: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981;';
+                }
+                
+                row.style.cssText = rowStyle;
+                row.innerHTML = `
+                    <td>${urgencyBadge}</td>
+                    <td style="font-weight: 600;">${pr.time_ago} (${pr.elapsed_minutes}min)</td>
+                    <td title="${pr.jit_event_id || 'N/A'}" style="font-family: monospace; font-size: 0.8rem; word-break: break-all;">${pr.jit_event_id || 'N/A'}</td>
+                    <td><span style="background: #475569; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8rem;">${pr.status || 'N/A'}</span></td>
+                    <td>${formatDate(pr.created_at)}</td>
+                    <td>${pr.original_repository || 'N/A'}</td>
+                    <td>${pr.owner || 'N/A'}</td>
+                    <td style="font-weight: 600;">#${pr.pull_request_number || 'N/A'}</td>
+                    <td title="${pr.pull_request_title || 'N/A'}" style="max-width: 300px; word-break: break-word;">${pr.pull_request_title || 'N/A'}</td>
+                    <td><code style="background: #334155; color: #60a5fa; padding: 2px 4px; border-radius: 3px; font-size: 0.8rem; word-break: break-all;">${pr.branch || 'N/A'}</code></td>
+                    <td title="${pr.commit_head_sha || 'N/A'}"><code style="background: #334155; color: #94a3b8; padding: 2px 4px; border-radius: 3px; font-size: 0.75rem; word-break: break-all;">${pr.commit_head_sha || 'N/A'}</code></td>
+                    <td style="font-size: 0.85rem;">${pr.jit_event_name || 'N/A'}</td>
+                    <td>${pr.url ? `<a href="${pr.url}" target="_blank" class="pr-link" style="font-weight: 600;">📎 View PR</a>` : 'N/A'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            resultsSection.style.display = 'block';
+            console.log('Results section displayed with', data.length, 'rows');
+        }
+
+        function clearDebugResults() {
+            document.getElementById('stuck-pr-stats').style.display = 'none';
+            document.getElementById('stuck-pr-results').style.display = 'none';
+            document.getElementById('debug-tenant-id').value = '';
+        }
+
+        function displayResults(results) {
+            console.log('displayResults called with:', results);
+            const table = document.getElementById('results-table');
+            const tbody = document.getElementById('results-tbody');
+            
+            tbody.innerHTML = '';
+            
+            if (results.length === 0) {
+                console.log('No results to display, hiding table');
+                table.style.display = 'none';
+                return;
+            }
+            
+            const rows = results.map((item, index) => {
+                const executionId = item.execution_id || 'N/A';
+                const jitEventId = item.jit_event_id || 'N/A';
+                const jitEventName = item.jit_event_name || 'N/A';
+                const status = item.status || 'unknown';
+                const controlName = item.control_name || 'N/A';
+                const createdAt = formatDate(item.created_at);
+                const completedAt = formatDate(item.completed_at);
+                
+                // Handle errors
+                let errorsDisplay = 'None';
+                if (item.errors && item.errors.length > 0) {
+                    const firstError = item.errors[0];
+                    const errorPreview = truncateText(JSON.stringify(firstError), 50);
+                    const hasMoreErrors = item.errors.length > 1;
+                    
+                    errorsDisplay = `
+                        <div class="error-cell">
+                            <div class="error-preview">${errorPreview}</div>
+                            <button class="expand-btn small" onclick="toggleErrorExpansion(${index})">expand</button>
+                            <div class="error-full" id="error-${index}" style="display: none;">
+                                <pre>${JSON.stringify(item.errors, null, 2)}</pre>
+                            </div>
+                        </div>
+                        ${hasMoreErrors ? `<div class="error-count">+${item.errors.length - 1} more</div>` : ''}
+                    `;
+                }
+                
+                // Handle additional fields
+                const additionalFields = getAdditionalFields(item);
+                
+                return `
+                    <tr data-index="${index}">
+                        <td class="expandable-cell" title="${jitEventId}">
+                            <div class="cell-content">
+                                <span class="cell-text">${truncateText(jitEventId, 25)}</span>
+                                ${jitEventId.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${jitEventId}')">⋯</button>` : ''}
+                            </div>
+                        </td>
+                        <td class="expandable-cell" title="${jitEventName}">
+                            <div class="cell-content">
+                                <span class="cell-text">${truncateText(jitEventName, 25)}</span>
+                                ${jitEventName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${jitEventName}')">⋯</button>` : ''}
+                            </div>
+                        </td>
+                        <td class="expandable-cell" title="${executionId}">
+                            <div class="cell-content">
+                                <span class="cell-text">${truncateText(executionId, 25)}</span>
+                                ${executionId.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${executionId}')">⋯</button>` : ''}
+                            </div>
+                        </td>
+                        <td><span class="status-badge status-${status}">${status}</span></td>
+                        <td class="expandable-cell" title="${controlName}">
+                            <div class="cell-content">
+                                <span class="cell-text">${truncateText(controlName, 25)}</span>
+                                ${controlName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${controlName}')">⋯</button>` : ''}
+                            </div>
+                        </td>
+                        <td class="expandable-cell" title="${createdAt}">
+                            <div class="cell-content">
+                                <span class="cell-text">${createdAt}</span>
+                            </div>
+                        </td>
+                        <td class="expandable-cell" title="${completedAt}">
+                            <div class="cell-content">
+                                <span class="cell-text">${completedAt}</span>
+                            </div>
+                        </td>
+                        <td class="errors-cell">${errorsDisplay}</td>
+                        <td class="additional-fields-cell">
+                            ${additionalFields.length > 0 ? `
+                                <div class="additional-fields">
+                                    <span class="fields-count">${additionalFields.length} fields</span>
+                                    <button class="expand-btn small" onclick="toggleAdditionalFields(${index})">show</button>
+                                </div>
+                                <div class="additional-fields-content" id="additional-${index}" style="display: none;">
+                                    <pre>${additionalFields.join('\n')}</pre>
+                                </div>
+                            ` : 'No additional data'}
+                        </td>
+                        <td class="actions-cell">
+                            <button class="action-btn view" onclick="viewDetails('${executionId}')">View All</button>
+                            <button class="action-btn copy" onclick="copyToClipboard('${executionId}')">Copy ID</button>
+                            <button class="action-btn expand-row" onclick="openRecordModal(${index})">Expand</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            tbody.innerHTML = rows;
+            table.style.display = 'table';
+            console.log('Results table displayed with', results.length, 'rows');
+        }
+
+        function clearFilters() {
+            document.getElementById('custom-filters-container').innerHTML = '';
+            addCustomFilter();
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleString();
+        }
+
+        function truncateText(text, maxLength) {
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        function updateResultsCount(count, scannedCount) {
+            const resultsCount = document.getElementById('results-count');
+            if (count > 0) {
+                resultsCount.textContent = `Found ${count} results (scanned ${scannedCount} items)`;
+            } else {
+                resultsCount.textContent = '';
+            }
+        }
+
+        function setLoadingState(loading) {
+            const btn = document.querySelector('.btn-primary');
+            const btnText = btn.querySelector('.btn-text');
+            
+            if (loading) {
+                btn.disabled = true;
+                btnText.textContent = 'Querying...';
+            } else {
+                btn.disabled = false;
+                btnText.textContent = 'Query DynamoDB';
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        function viewDetails(executionId) {
+            const item = currentResults.find(r => r.execution_id === executionId);
+            if (item) {
+                alert(JSON.stringify(item, null, 2));
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Data copied to clipboard!');
+            });
+        }
+
+        // Get additional fields beyond the main ones
+        function getAdditionalFields(item) {
+            const mainFields = ['jit_event_id', 'event_id', 'jit_event_name', 'execution_id', 'status', 'control_name', 'created_at', 'completed_at', 'errors'];
+            const additionalFields = [];
+            
+            Object.keys(item).forEach(key => {
+                if (!mainFields.includes(key)) {
+                    const value = item[key];
+                    if (value !== null && value !== undefined) {
+                        const displayValue = typeof value === 'object' ? 
+                            JSON.stringify(value, null, 2) : 
+                            String(value);
+                        additionalFields.push(`${key}: ${truncateText(displayValue, 100)}`);
+                    }
+                }
+            });
+            
+            return additionalFields;
+        }
+
+        // Toggle error expansion
+        function toggleErrorExpansion(index) {
+            const errorFull = document.getElementById(`error-${index}`);
+            const expandBtn = document.querySelector(`[onclick="toggleErrorExpansion(${index})"]`);
+            
+            if (errorFull.style.display === 'none') {
+                errorFull.style.display = 'block';
+                expandBtn.textContent = 'collapse';
+            } else {
+                errorFull.style.display = 'none';
+                expandBtn.textContent = 'expand';
+            }
+        }
+
+        // Toggle cell expansion for long text
+        function toggleCellExpansion(button, fullText) {
+            const cellText = button.previousElementSibling;
+            const isExpanded = button.textContent === '⋯';
+            
+            if (isExpanded) {
+                cellText.textContent = fullText;
+                button.textContent = '⌃';
+                button.title = 'Collapse';
+            } else {
+                cellText.textContent = truncateText(fullText, 25);
+                button.textContent = '⋯';
+                button.title = 'Expand';
+            }
+        }
+
+        // Toggle additional fields display
+        function toggleAdditionalFields(index) {
+            const content = document.getElementById(`additional-${index}`);
+            const button = document.querySelector(`[onclick="toggleAdditionalFields(${index})"]`);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                button.textContent = 'hide';
+                button.classList.add('expanded');
+            } else {
+                content.style.display = 'none';
+                button.textContent = 'show';
+                button.classList.remove('expanded');
+            }
+        }
+
+        // Open record modal
+        function openRecordModal(index) {
+            const item = currentResults[index];
+            const modal = document.getElementById('record-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalSections = document.getElementById('modal-sections');
+            const modalCopyBtn = document.getElementById('modal-copy-btn');
+            const modalCopyIdBtn = document.getElementById('modal-copy-id-btn');
+
+            modalTitle.textContent = `Record Details - ${item.execution_id || 'N/A'}`;
+            modalSections.innerHTML = '';
+
+            // Basic Information Section
+            modalSections.innerHTML += `
+                <div class="modal-section">
+                    <h4>📋 Basic Information</h4>
+                    <div class="modal-info-grid">
+                        <div class="modal-info-item">
+                            <span class="modal-info-label">JIT Event ID:</span>
+                            <span class="modal-info-value">${item.jit_event_id || 'N/A'}</span>
+                        </div>
+                        <div class="modal-info-item">
+                            <span class="modal-info-label">Execution ID:</span>
+                            <span class="modal-info-value">${item.execution_id || 'N/A'}</span>
+                        </div>
+                        <div class="modal-info-item">
+                            <span class="modal-info-label">Event Name:</span>
+                            <span class="modal-info-value">${item.jit_event_name || 'N/A'}</span>
+                        </div>
+                        <div class="modal-info-item">
+                            <span class="modal-info-label">Status:</span>
+                            <span class="modal-info-value status-${item.status || 'unknown'}">${item.status || 'N/A'}</span>
+                        </div>
+                        <div class="modal-info-item">
+                            <span class="modal-info-label">Control Name:</span>
+                            <span class="modal-info-value">${item.control_name || 'N/A'}</span>
+                        </div>
+                        <div class="modal-info-item">
+                            <span class="modal-info-label">Created At:</span>
+                            <span class="modal-info-value">${item.created_at ? formatDate(item.created_at) : 'N/A'}</span>
+                        </div>
+                        <div class="modal-info-item">
+                            <span class="modal-info-label">Completed At:</span>
+                            <span class="modal-info-value">${item.completed_at ? formatDate(item.completed_at) : 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Errors Section
+            if (item.errors && item.errors.length > 0) {
+                modalSections.innerHTML += `
+                    <div class="modal-section">
+                        <h4>🚨 Errors (${item.errors.length})</h4>
+                        <div class="modal-errors">
+                            ${item.errors.map((error, errorIndex) => `
+                                <div class="modal-error-item">
+                                    <div class="modal-error-header">Error ${errorIndex + 1}:</div>
+                                    <div class="modal-error-content">
+                                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Context Information Section
+            if (item.context) {
+                modalSections.innerHTML += `
+                    <div class="modal-section">
+                        <h4>📝 Context Information</h4>
+                        <div class="modal-context-sections">
+                `;
+
+                // JIT Event Context
+                if (item.context.jit_event) {
+                    modalSections.innerHTML += `
+                        <div class="modal-context-subsection">
+                            <h5>🔗 JIT Event Details</h5>
+                            <div class="modal-info-grid">
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">PR Number:</span>
+                                    <span class="modal-info-value">${item.context.jit_event.pull_request_number || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">PR Title:</span>
+                                    <span class="modal-info-value">${item.context.jit_event.pull_request_title || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Branch:</span>
+                                    <span class="modal-info-value">${item.context.jit_event.branch || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Owner:</span>
+                                    <span class="modal-info-value">${item.context.jit_event.owner || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">User:</span>
+                                    <span class="modal-info-value">${item.context.jit_event.user_vendor_name || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">URL:</span>
+                                    <span class="modal-info-value">${item.context.jit_event.url ? `<a href="${item.context.jit_event.url}" target="_blank" class="pr-link">${item.context.jit_event.url}</a>` : 'N/A'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Asset Context
+                if (item.context.asset) {
+                    modalSections.innerHTML += `
+                        <div class="modal-context-subsection">
+                            <h5>🎯 Asset Information</h5>
+                            <div class="modal-info-grid">
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Asset ID:</span>
+                                    <span class="modal-info-value">${item.context.asset.asset_id || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Asset Name:</span>
+                                    <span class="modal-info-value">${item.context.asset.asset_name || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Asset Type:</span>
+                                    <span class="modal-info-value">${item.context.asset.asset_type || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Environment:</span>
+                                    <span class="modal-info-value">${item.context.asset.environment || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Priority Score:</span>
+                                    <span class="modal-info-value">${item.context.asset.priority_score || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Is Covered:</span>
+                                    <span class="modal-info-value">${item.context.asset.is_covered ? 'Yes' : 'No'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Job Context
+                if (item.context.job) {
+                    modalSections.innerHTML += `
+                        <div class="modal-context-subsection">
+                            <h5>⚙️ Job Configuration</h5>
+                            <div class="modal-info-grid">
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Job Name:</span>
+                                    <span class="modal-info-value">${item.context.job.job_name || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Runner Type:</span>
+                                    <span class="modal-info-value">${item.context.job.runner?.type || 'N/A'}</span>
+                                </div>
+                                <div class="modal-info-item">
+                                    <span class="modal-info-label">Steps Count:</span>
+                                    <span class="modal-info-value">${item.context.job.steps?.length || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                modalSections.innerHTML += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Raw JSON Section
+            modalSections.innerHTML += `
+                <div class="modal-section">
+                    <h4>📊 Complete Raw Data</h4>
+                    <div class="modal-raw-json">
+                        <pre>${JSON.stringify(item, null, 2)}</pre>
+                    </div>
+                </div>
+            `;
+
+            // Set up copy buttons
+            modalCopyBtn.onclick = () => {
+                navigator.clipboard.writeText(JSON.stringify(item, null, 2)).then(() => {
+                    alert('Full JSON copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    alert('Failed to copy data.');
+                });
+            };
+
+            modalCopyIdBtn.onclick = () => {
+                navigator.clipboard.writeText(item.execution_id || 'N/A').then(() => {
+                    alert('Execution ID copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    alert('Failed to copy execution ID.');
+                });
+            };
+
+            modal.style.display = 'flex';
+        }
+
+        // Close record modal
+        function closeRecordModal() {
+            document.getElementById('record-modal').style.display = 'none';
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeRecordModal();
+            }
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('record-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRecordModal();
+            }
+        });
+    </script>
+</body>
+</html> 
