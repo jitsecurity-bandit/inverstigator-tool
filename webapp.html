@@ -190,11 +190,15 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            overflow: hidden;
         }
 
         .cell-text {
             flex: 1;
             min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .expand-cell-btn {
@@ -210,6 +214,67 @@
 
         .expand-cell-btn:hover {
             background: #60a5fa;
+        }
+
+        /* Fix table layout and column widths */
+        .results-table {
+            table-layout: fixed;
+            width: 100%;
+            min-width: 1600px;
+        }
+
+        .results-table th,
+        .results-table td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0.75rem 0.5rem;
+        }
+
+        /* Specific column widths */
+        .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 12%; } /* JIT Event ID */
+        .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 12%; } /* Event Name */
+        .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 12%; } /* Execution ID */
+        .results-table th:nth-child(4), .results-table td:nth-child(4) { width: 6%; } /* Status */
+        .results-table th:nth-child(5), .results-table td:nth-child(5) { width: 10%; } /* Control Name */
+        .results-table th:nth-child(6), .results-table td:nth-child(6) { width: 10%; } /* Asset Name */
+        .results-table th:nth-child(7), .results-table td:nth-child(7) { width: 6%; } /* Has Findings */
+        .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 9%; } /* Created At */
+        .results-table th:nth-child(9), .results-table td:nth-child(9) { width: 9%; } /* Completed At */
+        .results-table th:nth-child(10), .results-table td:nth-child(10) { width: 7%; } /* Additional Data */
+        .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 7%; } /* Actions */
+
+        /* Expanded cell styles */
+        .cell-content.expanded {
+            white-space: normal;
+            word-break: break-all;
+            min-height: 3rem;
+            align-items: flex-start;
+            padding: 0.25rem 0;
+        }
+
+        .cell-content.expanded .cell-text {
+            white-space: normal;
+            word-break: break-all;
+            line-height: 1.4;
+            max-height: 6rem;
+            overflow-y: auto;
+        }
+
+        /* Make expanded rows taller */
+        .results-table tr:has(.cell-content.expanded) {
+            height: auto;
+        }
+
+        .results-table tr:has(.cell-content.expanded) td {
+            vertical-align: top;
+            padding: 0.75rem 0.5rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #475569;
+            border-radius: 8px;
         }
 
         .errors-cell {
@@ -905,6 +970,10 @@
             color: #9ca3af;
             font-style: italic;
         }
+
+        .expandable-cell .cell-content {
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -1000,9 +1069,10 @@
                                     <th data-column="execution_id">Execution ID</th>
                                     <th data-column="status">Status</th>
                                     <th data-column="control_name">Control Name</th>
+                                    <th data-column="asset_name">Asset Name</th>
+                                    <th data-column="has_findings">Has Findings</th>
                                     <th data-column="created_at">Created At</th>
                                     <th data-column="completed_at">Completed At</th>
-                                    <th data-column="errors">Errors</th>
                                     <th>Additional Data</th>
                                     <th>Actions</th>
                                 </tr>
@@ -1468,27 +1538,10 @@
                 const jitEventName = item.jit_event_name || 'N/A';
                 const status = item.status || 'unknown';
                 const controlName = item.control_name || 'N/A';
+                const assetName = item.asset_name || 'N/A';
+                const hasFindings = item.has_findings || 'N/A';
                 const createdAt = formatDate(item.created_at);
                 const completedAt = formatDate(item.completed_at);
-                
-                // Handle errors
-                let errorsDisplay = 'None';
-                if (item.errors && item.errors.length > 0) {
-                    const firstError = item.errors[0];
-                    const errorPreview = truncateText(JSON.stringify(firstError), 50);
-                    const hasMoreErrors = item.errors.length > 1;
-                    
-                    errorsDisplay = `
-                        <div class="error-cell">
-                            <div class="error-preview">${errorPreview}</div>
-                            <button class="expand-btn small" onclick="toggleErrorExpansion(${index})">expand</button>
-                            <div class="error-full" id="error-${index}" style="display: none;">
-                                <pre>${JSON.stringify(item.errors, null, 2)}</pre>
-                            </div>
-                        </div>
-                        ${hasMoreErrors ? `<div class="error-count">+${item.errors.length - 1} more</div>` : ''}
-                    `;
-                }
                 
                 // Handle additional fields
                 const additionalFields = getAdditionalFields(item);
@@ -1497,7 +1550,7 @@
                     <tr data-index="${index}">
                         <td class="expandable-cell" title="${jitEventId}">
                             <div class="cell-content">
-                                <span class="cell-text">${truncateText(jitEventId, 25)}</span>
+                                <span class="cell-text">${jitEventId}</span>
                                 ${jitEventId.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${jitEventId}')">⋯</button>` : ''}
                             </div>
                         </td>
@@ -1509,7 +1562,7 @@
                         </td>
                         <td class="expandable-cell" title="${executionId}">
                             <div class="cell-content">
-                                <span class="cell-text">${truncateText(executionId, 25)}</span>
+                                <span class="cell-text">${executionId}</span>
                                 ${executionId.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${executionId}')">⋯</button>` : ''}
                             </div>
                         </td>
@@ -1518,6 +1571,18 @@
                             <div class="cell-content">
                                 <span class="cell-text">${truncateText(controlName, 25)}</span>
                                 ${controlName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${controlName}')">⋯</button>` : ''}
+                            </div>
+                        </td>
+                        <td class="expandable-cell" title="${assetName}">
+                            <div class="cell-content">
+                                <span class="cell-text">${truncateText(assetName, 25)}</span>
+                                ${assetName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${assetName}')">⋯</button>` : ''}
+                            </div>
+                        </td>
+                        <td class="expandable-cell" title="${hasFindings}">
+                            <div class="cell-content">
+                                <span class="cell-text">${truncateText(String(hasFindings), 25)}</span>
+                                ${String(hasFindings).length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${String(hasFindings)}')">⋯</button>` : ''}
                             </div>
                         </td>
                         <td class="expandable-cell" title="${createdAt}">
@@ -1530,7 +1595,6 @@
                                 <span class="cell-text">${completedAt}</span>
                             </div>
                         </td>
-                        <td class="errors-cell">${errorsDisplay}</td>
                         <td class="additional-fields-cell">
                             ${additionalFields.length > 0 ? `
                                 <div class="additional-fields">
@@ -1616,7 +1680,7 @@
 
         // Get additional fields beyond the main ones
         function getAdditionalFields(item) {
-            const mainFields = ['jit_event_id', 'event_id', 'jit_event_name', 'execution_id', 'status', 'control_name', 'created_at', 'completed_at', 'errors'];
+            const mainFields = ['jit_event_id', 'event_id', 'jit_event_name', 'execution_id', 'status', 'control_name', 'asset_name', 'has_findings', 'created_at', 'completed_at', 'errors'];
             const additionalFields = [];
             
             Object.keys(item).forEach(key => {
@@ -1650,6 +1714,7 @@
 
         // Toggle cell expansion for long text
         function toggleCellExpansion(button, fullText) {
+            const cellContent = button.parentElement;
             const cellText = button.previousElementSibling;
             const isExpanded = button.textContent === '⋯';
             
@@ -1657,10 +1722,12 @@
                 cellText.textContent = fullText;
                 button.textContent = '⌃';
                 button.title = 'Collapse';
+                cellContent.classList.add('expanded');
             } else {
                 cellText.textContent = truncateText(fullText, 25);
                 button.textContent = '⋯';
                 button.title = 'Expand';
+                cellContent.classList.remove('expanded');
             }
         }
 
@@ -1903,7 +1970,7 @@
             modalTitle.textContent = `Additional Data - ${item.execution_id || 'N/A'}`;
             
             // Get all additional fields without truncation
-            const mainFields = ['jit_event_id', 'event_id', 'jit_event_name', 'execution_id', 'status', 'control_name', 'created_at', 'completed_at', 'errors'];
+            const mainFields = ['jit_event_id', 'event_id', 'jit_event_name', 'execution_id', 'status', 'control_name', 'asset_name', 'has_findings', 'created_at', 'completed_at', 'errors'];
             const additionalFields = [];
             
             Object.keys(item).forEach(key => {
