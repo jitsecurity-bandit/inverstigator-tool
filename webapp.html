@@ -1331,6 +1331,12 @@
             setupEventListeners();
             updateAwsStatus();
             addCustomFilter();
+            
+            // Initialize the mode switch state to ensure form validation is properly set up
+            const checkedRadio = document.querySelector('input[name="queryMode"]:checked');
+            if (checkedRadio) {
+                handleModeSwitch({ target: checkedRadio });
+            }
         });
 
         function switchTab(tabName) {
