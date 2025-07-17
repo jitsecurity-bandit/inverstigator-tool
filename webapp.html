@@ -1879,9 +1879,7 @@
                         ` : 'No additional data'}
                     </td>
                     <td class="actions-cell">
-                        <button class="action-btn view" onclick="viewDetails('${executionId}')">View All</button>
-                        <button class="action-btn copy" onclick="copyToClipboard('${executionId}')">Copy ID</button>
-                        <button class="action-btn expand-row" onclick="openRecordModal(${index})">Expand</button>
+                        <button class="action-btn kubectl" onclick="copyKubectlLogsCommand('${executionId}')">Copy kubectl logs</button>
                     </td>
                 </tr>
             `;
@@ -2010,6 +2008,35 @@
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
                 alert('Data copied to clipboard!');
+            });
+        }
+
+        // Copy kubectl logs command for execution
+        function copyKubectlLogsCommand(executionId) {
+            const tenantId = document.getElementById('tenant-id').value.trim();
+            
+            if (!tenantId) {
+                alert('Tenant ID is required to generate kubectl command');
+                return;
+            }
+            
+            if (!executionId || executionId === 'N/A') {
+                alert('Valid execution ID is required to generate kubectl command');
+                return;
+            }
+            
+            // Extract first part of execution_id (before first hyphen)
+            const executionIdPart = executionId.split('-')[0];
+            
+            // Generate kubectl command
+            const kubectlCommand = `POD_NAME=$(kubectl-prod -n ${tenantId} get pods --no-headers | grep "${executionIdPart}" | awk '{print $1}')
+kubectl-prod -n ${tenantId} logs $POD_NAME`;
+            
+            navigator.clipboard.writeText(kubectlCommand).then(() => {
+                alert('kubectl logs command copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy kubectl command:', err);
+                alert('Failed to copy kubectl command to clipboard');
             });
         }
 
