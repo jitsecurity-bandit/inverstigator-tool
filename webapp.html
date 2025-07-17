@@ -234,12 +234,12 @@
         /* Specific column widths */
         .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 12%; } /* JIT Event ID */
         .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 12%; } /* Event Name */
-        .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 12%; } /* Execution ID */
-        .results-table th:nth-child(4), .results-table td:nth-child(4) { width: 6%; } /* Status */
-        .results-table th:nth-child(5), .results-table td:nth-child(5) { width: 10%; } /* Control Name */
-        .results-table th:nth-child(6), .results-table td:nth-child(6) { width: 10%; } /* Asset Name */
-        .results-table th:nth-child(7), .results-table td:nth-child(7) { width: 6%; } /* Has Findings */
-        .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 9%; } /* Created At */
+        .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 12%; } /* Execution ID / Created At */
+        .results-table th:nth-child(4), .results-table td:nth-child(4) { width: 6%; } /* Status / Modified At */
+        .results-table th:nth-child(5), .results-table td:nth-child(5) { width: 10%; } /* Control Name / Progress */
+        .results-table th:nth-child(6), .results-table td:nth-child(6) { width: 10%; } /* Asset Name / Status */
+        .results-table th:nth-child(7), .results-table td:nth-child(7) { width: 6%; } /* Has Findings / Additional Data */
+        .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 9%; } /* Created At / Actions */
         .results-table th:nth-child(9), .results-table td:nth-child(9) { width: 9%; } /* Completed At */
         .results-table th:nth-child(10), .results-table td:nth-child(10) { width: 7%; } /* Additional Data */
         .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 7%; } /* Actions */
@@ -974,6 +974,120 @@
         .expandable-cell .cell-content {
             white-space: nowrap;
         }
+
+        /* Query Mode Selection Styles */
+        .query-mode-selection {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid #475569;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .query-mode-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.5rem;
+            background: #334155;
+            border: 2px solid #475569;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            flex: 1;
+        }
+
+        .query-mode-option:hover {
+            border-color: #60a5fa;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(96, 165, 250, 0.2);
+        }
+
+        .query-mode-option.active {
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            border-color: #60a5fa;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(96, 165, 250, 0.3);
+        }
+
+        .query-mode-radio {
+            appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid #94a3b8;
+            border-radius: 50%;
+            position: relative;
+            margin: 0;
+        }
+
+        .query-mode-option.active .query-mode-radio {
+            border-color: white;
+        }
+
+        .query-mode-radio:checked {
+            background: white;
+            border-color: white;
+        }
+
+        .query-mode-radio:checked::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: #60a5fa;
+        }
+
+        .query-mode-option.active .query-mode-radio:checked::after {
+            background: #1e293b;
+        }
+
+        .query-mode-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .query-mode-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
+        }
+
+        .query-mode-content {
+            flex: 1;
+        }
+
+        .query-mode-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+
+        /* Conditional field styling */
+        .form-group.conditional {
+            transition: all 0.3s ease;
+        }
+
+        .form-group.conditional.hidden {
+            display: none;
+        }
+
+        /* Enhanced form styling */
+        .filters-form {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        /* Grid layout classes are defined in styles.css */
     </style>
 </head>
 <body>
@@ -997,13 +1111,39 @@
             <div id="query-tab" class="tab-content active">
                 <section class="filters-section">
                     <h2>Query Parameters</h2>
-                    <form id="query-form" class="filters-form">
-                        <div class="form-group">
+                    
+                    <!-- Query Mode Selection -->
+                    <div class="query-mode-selection">
+                        <label class="query-mode-option active" for="mode-executions">
+                            <input type="radio" id="mode-executions" name="queryMode" value="executions" class="query-mode-radio" checked>
+                            <div class="query-mode-content">
+                                <div class="query-mode-label">
+                                    <span class="query-mode-icon">🔧</span>
+                                    Job Executions
+                                </div>
+                                <div class="query-mode-description">Query control execution results by status</div>
+                            </div>
+                        </label>
+                        <label class="query-mode-option" for="mode-events">
+                            <input type="radio" id="mode-events" name="queryMode" value="events" class="query-mode-radio">
+                            <div class="query-mode-content">
+                                <div class="query-mode-label">
+                                    <span class="query-mode-icon">📋</span>
+                                    JIT Events
+                                </div>
+                                <div class="query-mode-description">Query JIT events and PR information by status</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <form id="query-form" class="filters-form-query">
+                        <div class="form-group tenant-width">
                             <label for="tenant-id">Tenant ID *</label>
                             <input type="text" id="tenant-id" placeholder="e.g., c21e94b3-e27a-4f26-8035-5028ac81c818" required>
                         </div>
 
-                        <div class="form-group">
+                        <!-- Conditional fields for Job Executions -->
+                        <div class="form-group conditional status-width" id="status-group">
                             <label for="status">Status *</label>
                             <select id="status" required>
                                 <option value="">Select Status</option>
@@ -1014,17 +1154,30 @@
                             </select>
                         </div>
 
-                        <div class="form-group">
+                        <!-- Conditional fields for JIT Events -->
+                        <div class="form-group conditional hidden status-width" id="event-status-group">
+                            <label for="event-status">Status *</label>
+                            <select id="event-status" required>
+                                <option value="">Select Status</option>
+                                <option value="creating">Creating</option>
+                                <option value="started">Started</option>
+                                <option value="jobs_sent">Jobs Sent</option>
+                                <option value="completed">Completed</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group limit-width">
                             <label for="limit">Limit</label>
                             <input type="number" id="limit" value="50" min="1" max="1000">
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group date-width">
                             <label for="start-date">Start Date</label>
                             <input type="datetime-local" id="start-date">
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group date-width">
                             <label for="end-date">End Date</label>
                             <input type="datetime-local" id="end-date">
                         </div>
@@ -1042,7 +1195,7 @@
 
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">
-                                <span class="btn-text">Query DynamoDB</span>
+                                <span class="btn-text" id="query-btn-text">Query Job Executions</span>
                             </button>
                         </div>
                     </form>
@@ -1232,6 +1385,22 @@
             document.getElementById('stuck-pr-btn').addEventListener('click', findStuckPRExecutions);
             document.getElementById('clear-debug-btn').addEventListener('click', clearDebugResults);
             
+            // Add query mode switching
+            document.querySelectorAll('input[name="queryMode"]').forEach(radio => {
+                radio.addEventListener('change', handleModeSwitch);
+            });
+
+            // Add click handlers for mode options
+            document.querySelectorAll('.query-mode-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        handleModeSwitch({ target: radio });
+                    }
+                });
+            });
+            
             // Add keyboard support for debug tenant ID input
             document.getElementById('debug-tenant-id').addEventListener('keydown', function(event) {
                 if (event.key === 'Enter') {
@@ -1239,6 +1408,39 @@
                     document.getElementById('stuck-pr-btn').click();
                 }
             });
+        }
+
+        function handleModeSwitch(event) {
+            const selectedMode = event.target.value;
+            const statusGroup = document.getElementById('status-group');
+            const eventStatusGroup = document.getElementById('event-status-group');
+            const queryBtnText = document.getElementById('query-btn-text');
+            const statusField = document.getElementById('status');
+            const eventStatusField = document.getElementById('event-status');
+            
+            // Update active mode styling
+            document.querySelectorAll('.query-mode-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            event.target.closest('.query-mode-option').classList.add('active');
+
+            if (selectedMode === 'executions') {
+                // Show execution status field, hide event fields
+                statusGroup.classList.remove('hidden');
+                eventStatusGroup.classList.add('hidden');
+                queryBtnText.textContent = 'Query Job Executions';
+                statusField.required = true;
+                eventStatusField.required = false;
+                eventStatusField.value = ''; // Clear event status value
+            } else if (selectedMode === 'events') {
+                // Show event status field, hide execution status
+                statusGroup.classList.add('hidden');
+                eventStatusGroup.classList.remove('hidden');
+                queryBtnText.textContent = 'Query JIT Events';
+                statusField.required = false;
+                statusField.value = ''; // Clear execution status value
+                eventStatusField.required = true;
+            }
         }
 
         function addCustomFilter(field = '', operator = 'contains', value = '') {
@@ -1295,14 +1497,27 @@
             e.preventDefault();
             
             const tenantId = document.getElementById('tenant-id').value.trim();
-            const status = document.getElementById('status').value;
+            const queryMode = document.querySelector('input[name="queryMode"]:checked').value;
+            const executionStatus = document.getElementById('status').value;
+            const eventStatus = document.getElementById('event-status').value;
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
             const limit = parseInt(document.getElementById('limit').value) || 50;
             const customFilters = getCustomFilters();
             
-            if (!tenantId || !status) {
-                showError('Please fill in all required fields');
+            // Validation based on query mode
+            if (!tenantId) {
+                showError('Please enter a tenant ID');
+                return;
+            }
+            
+            if (queryMode === 'executions' && !executionStatus) {
+                showError('Please select a status for Job Executions query');
+                return;
+            }
+            
+            if (queryMode === 'events' && !eventStatus) {
+                showError('Please select a status for JIT Events query');
                 return;
             }
             
@@ -1310,16 +1525,33 @@
             hideError();
             
             try {
-                const params = {
-                    tenantId,
-                    status,
-                    startDate: startDate ? new Date(startDate).toISOString() : null,
-                    endDate: endDate ? new Date(endDate).toISOString() : null,
-                    limit,
-                    customFilters
-                };
+                let endpoint, params;
                 
-                const response = await fetch('/api/query', {
+                if (queryMode === 'executions') {
+                    endpoint = '/api/query';
+                    params = {
+                        tenantId,
+                        status: executionStatus,
+                        startDate: startDate ? new Date(startDate).toISOString() : null,
+                        endDate: endDate ? new Date(endDate).toISOString() : null,
+                        limit,
+                        customFilters
+                    };
+                } else {
+                    endpoint = '/api/query-jit-events';
+                    params = {
+                        tenantId,
+                        status: eventStatus,
+                        startDate: startDate ? new Date(startDate).toISOString() : null,
+                        endDate: endDate ? new Date(endDate).toISOString() : null,
+                        limit,
+                        customFilters
+                    };
+                }
+                
+                console.log(`Querying ${queryMode} with endpoint ${endpoint}:`, params);
+                
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(params)
@@ -1331,13 +1563,13 @@
                 if (result.success) {
                     console.log('Query successful, data:', result.data);
                     currentResults = result.data;
-                    displayResults(result.data);
+                    displayResults(result.data, queryMode);
                     updateResultsCount(result.count, result.scannedCount);
                 } else {
                     console.error('Query failed:', result.error);
                     showError(`Query failed: ${result.error}`);
                     currentResults = [];
-                    displayResults([]);
+                    displayResults([], queryMode);
                     updateResultsCount(0, 0);
                 }
             } catch (error) {
@@ -1519,10 +1751,11 @@
             document.getElementById('debug-tenant-id').value = '';
         }
 
-        function displayResults(results) {
-            console.log('displayResults called with:', results);
+        function displayResults(results, queryMode = 'executions') {
+            console.log('displayResults called with:', results, 'Mode:', queryMode);
             const table = document.getElementById('results-table');
             const tbody = document.getElementById('results-tbody');
+            const thead = table.querySelector('thead tr');
             
             tbody.innerHTML = '';
             
@@ -1532,92 +1765,194 @@
                 return;
             }
             
+            // Update table headers based on query mode
+            if (queryMode === 'executions') {
+                thead.innerHTML = `
+                    <th data-column="jit_event_id">JIT Event ID</th>
+                    <th data-column="jit_event_name">Event Name</th>
+                    <th data-column="execution_id">Execution ID</th>
+                    <th data-column="status">Status</th>
+                    <th data-column="control_name">Control Name</th>
+                    <th data-column="asset_name">Asset Name</th>
+                    <th data-column="has_findings">Has Findings</th>
+                    <th data-column="created_at">Created At</th>
+                    <th data-column="completed_at">Completed At</th>
+                    <th>Additional Data</th>
+                    <th>Actions</th>
+                `;
+            } else {
+                thead.innerHTML = `
+                    <th data-column="jit_event_id">JIT Event ID</th>
+                    <th data-column="jit_event_name">Event Name</th>
+                    <th data-column="created_at">Created At</th>
+                    <th data-column="modified_at">Modified At</th>
+                    <th data-column="progress">Progress</th>
+                    <th data-column="status">Status</th>
+                    <th>Additional Data</th>
+                    <th>Actions</th>
+                `;
+            }
+            
             const rows = results.map((item, index) => {
-                const executionId = item.execution_id || 'N/A';
                 const jitEventId = item.jit_event_id || 'N/A';
                 const jitEventName = item.jit_event_name || 'N/A';
-                const status = item.status || 'unknown';
-                const controlName = item.control_name || 'N/A';
-                const assetName = item.asset_name || 'N/A';
-                const hasFindings = item.has_findings || 'N/A';
                 const createdAt = formatDate(item.created_at);
-                const completedAt = formatDate(item.completed_at);
                 
                 // Handle additional fields
-                const additionalFields = getAdditionalFields(item);
+                const additionalFields = getAdditionalFields(item, queryMode);
                 
-                return `
-                    <tr data-index="${index}">
-                        <td class="expandable-cell" title="${jitEventId}">
-                            <div class="cell-content">
-                                <span class="cell-text">${jitEventId}</span>
-                                ${jitEventId.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${jitEventId}')">⋯</button>` : ''}
-                            </div>
-                        </td>
-                        <td class="expandable-cell" title="${jitEventName}">
-                            <div class="cell-content">
-                                <span class="cell-text">${truncateText(jitEventName, 25)}</span>
-                                ${jitEventName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${jitEventName}')">⋯</button>` : ''}
-                            </div>
-                        </td>
-                        <td class="expandable-cell" title="${executionId}">
-                            <div class="cell-content">
-                                <span class="cell-text">${executionId}</span>
-                                ${executionId.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${executionId}')">⋯</button>` : ''}
-                            </div>
-                        </td>
-                        <td><span class="status-badge status-${status}">${status}</span></td>
-                        <td class="expandable-cell" title="${controlName}">
-                            <div class="cell-content">
-                                <span class="cell-text">${truncateText(controlName, 25)}</span>
-                                ${controlName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${controlName}')">⋯</button>` : ''}
-                            </div>
-                        </td>
-                        <td class="expandable-cell" title="${assetName}">
-                            <div class="cell-content">
-                                <span class="cell-text">${truncateText(assetName, 25)}</span>
-                                ${assetName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${assetName}')">⋯</button>` : ''}
-                            </div>
-                        </td>
-                        <td class="expandable-cell" title="${hasFindings}">
-                            <div class="cell-content">
-                                <span class="cell-text">${truncateText(String(hasFindings), 25)}</span>
-                                ${String(hasFindings).length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${String(hasFindings)}')">⋯</button>` : ''}
-                            </div>
-                        </td>
-                        <td class="expandable-cell" title="${createdAt}">
-                            <div class="cell-content">
-                                <span class="cell-text">${createdAt}</span>
-                            </div>
-                        </td>
-                        <td class="expandable-cell" title="${completedAt}">
-                            <div class="cell-content">
-                                <span class="cell-text">${completedAt}</span>
-                            </div>
-                        </td>
-                        <td class="additional-fields-cell">
-                            ${additionalFields.length > 0 ? `
-                                <div class="additional-fields">
-                                    <span class="fields-count">${additionalFields.length} fields</span>
-                                    <button class="expand-btn small" onclick="openAdditionalDataModal(${index})">show</button>
-                                </div>
-                                <div class="additional-fields-content" id="additional-${index}" style="display: none;">
-                                    <pre>${additionalFields.join('\n')}</pre>
-                                </div>
-                            ` : 'No additional data'}
-                        </td>
-                        <td class="actions-cell">
-                            <button class="action-btn view" onclick="viewDetails('${executionId}')">View All</button>
-                            <button class="action-btn copy" onclick="copyToClipboard('${executionId}')">Copy ID</button>
-                            <button class="action-btn expand-row" onclick="openRecordModal(${index})">Expand</button>
-                        </td>
-                    </tr>
-                `;
+                if (queryMode === 'executions') {
+                    return renderExecutionRow(item, index, jitEventId, jitEventName, createdAt, additionalFields);
+                } else {
+                    return renderEventRow(item, index, jitEventId, jitEventName, createdAt, additionalFields);
+                }
             }).join('');
             
             tbody.innerHTML = rows;
             table.style.display = 'table';
-            console.log('Results table displayed with', results.length, 'rows');
+            console.log('Results table displayed with', results.length, 'rows in', queryMode, 'mode');
+        }
+
+        function renderExecutionRow(item, index, jitEventId, jitEventName, createdAt, additionalFields) {
+            const executionId = item.execution_id || 'N/A';
+            const status = item.status || 'unknown';
+            const controlName = item.control_name || 'N/A';
+            const assetName = item.asset_name || 'N/A';
+            const hasFindings = item.has_findings || 'N/A';
+            const completedAt = formatDate(item.completed_at);
+            
+            return `
+                <tr data-index="${index}">
+                    <td class="expandable-cell" title="${jitEventId}">
+                        <div class="cell-content">
+                            <span class="cell-text">${jitEventId}</span>
+                            ${jitEventId.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${jitEventId}')">⋯</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${jitEventName}">
+                        <div class="cell-content">
+                            <span class="cell-text">${truncateText(jitEventName, 25)}</span>
+                            ${jitEventName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${jitEventName}')">⋯</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${executionId}">
+                        <div class="cell-content">
+                            <span class="cell-text">${executionId}</span>
+                            ${executionId.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${executionId}')">⋯</button>` : ''}
+                        </div>
+                    </td>
+                    <td><span class="status-badge status-${status}">${status}</span></td>
+                    <td class="expandable-cell" title="${controlName}">
+                        <div class="cell-content">
+                            <span class="cell-text">${truncateText(controlName, 25)}</span>
+                            ${controlName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${controlName}')">⋯</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${assetName}">
+                        <div class="cell-content">
+                            <span class="cell-text">${truncateText(assetName, 25)}</span>
+                            ${assetName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${assetName}')">⋯</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${hasFindings}">
+                        <div class="cell-content">
+                            <span class="cell-text">${truncateText(String(hasFindings), 25)}</span>
+                            ${String(hasFindings).length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${String(hasFindings)}')">⋯</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${createdAt}">
+                        <div class="cell-content">
+                            <span class="cell-text">${createdAt}</span>
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${completedAt}">
+                        <div class="cell-content">
+                            <span class="cell-text">${completedAt}</span>
+                        </div>
+                    </td>
+                    <td class="additional-fields-cell">
+                        ${additionalFields.length > 0 ? `
+                            <div class="additional-fields">
+                                <span class="fields-count">${additionalFields.length} fields</span>
+                                <button class="expand-btn small" onclick="openAdditionalDataModal(${index})">show</button>
+                            </div>
+                        ` : 'No additional data'}
+                    </td>
+                    <td class="actions-cell">
+                        <button class="action-btn view" onclick="viewDetails('${executionId}')">View All</button>
+                        <button class="action-btn copy" onclick="copyToClipboard('${executionId}')">Copy ID</button>
+                        <button class="action-btn expand-row" onclick="openRecordModal(${index})">Expand</button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function renderEventRow(item, index, jitEventId, jitEventName, createdAt, additionalFields) {
+            const modifiedAt = formatDate(item.modified_at);
+            
+            // Calculate progress from remaining_assets and total_assets
+            const remainingAssets = item.remaining_assets || 0;
+            const totalAssets = item.total_assets || 0;
+            let progressText = 'N/A';
+            if (totalAssets > 0) {
+                const completedAssets = totalAssets - remainingAssets;
+                progressText = `${completedAssets}/${totalAssets}`;
+            }
+            
+            // Extract status from GSI2PK_TENANT_ID_STATUS or use the status field directly
+            let status = item.status || 'unknown';
+            if (item.GSI2PK_TENANT_ID_STATUS && item.GSI2PK_TENANT_ID_STATUS.includes('#STATUS#')) {
+                const statusPart = item.GSI2PK_TENANT_ID_STATUS.split('#STATUS#')[1];
+                if (statusPart) {
+                    status = statusPart;
+                }
+            }
+            
+            return `
+                <tr data-index="${index}">
+                    <td class="expandable-cell" title="${jitEventId}">
+                        <div class="cell-content">
+                            <span class="cell-text">${jitEventId}</span>
+                            ${jitEventId.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${jitEventId}')">⋯</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${jitEventName}">
+                        <div class="cell-content">
+                            <span class="cell-text">${truncateText(jitEventName, 25)}</span>
+                            ${jitEventName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${jitEventName}')">⋯</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${createdAt}">
+                        <div class="cell-content">
+                            <span class="cell-text">${createdAt}</span>
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${modifiedAt}">
+                        <div class="cell-content">
+                            <span class="cell-text">${modifiedAt}</span>
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="Completed: ${totalAssets - remainingAssets}, Remaining: ${remainingAssets}, Total: ${totalAssets}">
+                        <div class="cell-content">
+                            <span class="cell-text" style="font-weight: 600; color: ${remainingAssets === 0 && totalAssets > 0 ? '#10b981' : '#60a5fa'};">${progressText}</span>
+                        </div>
+                    </td>
+                    <td><span class="status-badge status-${status}">${status}</span></td>
+                    <td class="additional-fields-cell">
+                        ${additionalFields.length > 0 ? `
+                            <div class="additional-fields">
+                                <span class="fields-count">${additionalFields.length} fields</span>
+                                <button class="expand-btn small" onclick="openAdditionalDataModal(${index})">show</button>
+                            </div>
+                        ` : 'No additional data'}
+                    </td>
+                    <td class="actions-cell">
+                        <button class="action-btn view" onclick="viewDetails('${jitEventId}')">View All</button>
+                        <button class="action-btn copy" onclick="copyToClipboard('${jitEventId}')">Copy ID</button>
+                        <button class="action-btn expand-row" onclick="openRecordModal(${index})">Expand</button>
+                    </td>
+                </tr>
+            `;
         }
 
         function clearFilters() {
@@ -1679,8 +2014,15 @@
         }
 
         // Get additional fields beyond the main ones
-        function getAdditionalFields(item) {
-            const mainFields = ['jit_event_id', 'event_id', 'jit_event_name', 'execution_id', 'status', 'control_name', 'asset_name', 'has_findings', 'created_at', 'completed_at', 'errors'];
+        function getAdditionalFields(item, queryMode = 'executions') {
+            let mainFields;
+            
+            if (queryMode === 'executions') {
+                mainFields = ['jit_event_id', 'event_id', 'jit_event_name', 'execution_id', 'status', 'control_name', 'asset_name', 'has_findings', 'created_at', 'completed_at', 'errors'];
+            } else {
+                mainFields = ['jit_event_id', 'jit_event_name', 'created_at', 'modified_at', 'remaining_assets', 'total_assets', 'status', 'GSI2PK_TENANT_ID_STATUS', 'tenant_id'];
+            }
+            
             const additionalFields = [];
             
             Object.keys(item).forEach(key => {

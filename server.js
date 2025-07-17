@@ -256,6 +256,181 @@ app.post('/api/query', async (req, res) => {
   }
 });
 
+// New endpoint for querying JitEvents table
+app.post('/api/query-jit-events', async (req, res) => {
+  try {
+    const { tenantId, status, eventNameFilter, startDate, endDate, limit = 50, customFilters = [] } = req.body;
+    
+    console.log(`=== JITEVENTS QUERY DEBUG ===`);
+    console.log(`Region: ${AWS.config.region}`);
+    console.log(`TenantId: ${tenantId}`);
+    console.log(`Status: ${status}`);
+    console.log(`EventNameFilter: ${eventNameFilter}`);
+    
+    // Collect all items with pagination
+    let allItems = [];
+    let lastEvaluatedKey = null;
+    let totalScanned = 0;
+    let queryCount = 0;
+    
+    do {
+      queryCount++;
+      console.log(`Query ${queryCount}: Starting pagination query...`);
+      console.log(`LastEvaluatedKey from previous query:`, lastEvaluatedKey ? 'exists' : 'null');
+      
+      const queryParams = {
+        TableName: 'JitEvents',
+        IndexName: 'GSI2',
+        KeyConditionExpression: 'GSI2PK_TENANT_ID_STATUS = :pk',
+        ExpressionAttributeValues: {
+          ':pk': `TENANT#${tenantId}#STATUS#${status}`
+        },
+        Limit: Math.max(limit, 1000), // Use at least 1000 for efficient pagination
+        ScanIndexForward: false // Sort descending by GSI2SK
+      };
+
+      // Add date filter if provided
+      if (startDate) {
+        queryParams.KeyConditionExpression += ' AND GSI2SK >= :startDate';
+        queryParams.ExpressionAttributeValues[':startDate'] = startDate;
+      }
+
+      if (endDate) {
+        if (startDate) {
+          queryParams.KeyConditionExpression = queryParams.KeyConditionExpression.replace('>=', 'BETWEEN');
+          queryParams.KeyConditionExpression += ' AND :endDate';
+        } else {
+          queryParams.KeyConditionExpression += ' AND GSI2SK <= :endDate';
+        }
+        queryParams.ExpressionAttributeValues[':endDate'] = endDate;
+      }
+
+      // Initialize filter expressions array and attribute names/values
+      const filterExpressions = [];
+      const expressionAttributeNames = queryParams.ExpressionAttributeNames || {};
+      const expressionAttributeValues = queryParams.ExpressionAttributeValues || {};
+
+      // Add event name filter if provided
+      if (eventNameFilter && eventNameFilter.trim()) {
+        const eventNamePlaceholder = '#eventName';
+        const eventValuePlaceholder = ':eventNameValue';
+        
+        expressionAttributeNames[eventNamePlaceholder] = 'jit_event_name';
+        expressionAttributeValues[eventValuePlaceholder] = eventNameFilter.trim();
+        filterExpressions.push(`contains(${eventNamePlaceholder}, ${eventValuePlaceholder})`);
+      }
+
+      // Handle custom filters
+      if (customFilters && customFilters.length > 0) {
+        customFilters.forEach((filter, index) => {
+          const { field, operator, value } = filter;
+          const fieldPlaceholder = `#customField${index}`;
+          const valuePlaceholder = `:customValue${index}`;
+          
+          expressionAttributeNames[fieldPlaceholder] = field;
+          
+          switch (operator) {
+            case '=':
+              filterExpressions.push(`${fieldPlaceholder} = ${valuePlaceholder}`);
+              expressionAttributeValues[valuePlaceholder] = value;
+              break;
+            case '<':
+              filterExpressions.push(`${fieldPlaceholder} < ${valuePlaceholder}`);
+              expressionAttributeValues[valuePlaceholder] = value;
+              break;
+            case '>':
+              filterExpressions.push(`${fieldPlaceholder} > ${valuePlaceholder}`);
+              expressionAttributeValues[valuePlaceholder] = value;
+              break;
+            case 'contains':
+              filterExpressions.push(`contains(${fieldPlaceholder}, ${valuePlaceholder})`);
+              expressionAttributeValues[valuePlaceholder] = value;
+              break;
+            case 'begins_with':
+              filterExpressions.push(`begins_with(${fieldPlaceholder}, ${valuePlaceholder})`);
+              expressionAttributeValues[valuePlaceholder] = value;
+              break;
+            default:
+              filterExpressions.push(`${fieldPlaceholder} = ${valuePlaceholder}`);
+              expressionAttributeValues[valuePlaceholder] = value;
+          }
+        });
+      }
+      
+      // Apply filter expressions if any exist
+      if (filterExpressions.length > 0) {
+        queryParams.FilterExpression = filterExpressions.join(' AND ');
+        queryParams.ExpressionAttributeNames = expressionAttributeNames;
+        queryParams.ExpressionAttributeValues = { ...queryParams.ExpressionAttributeValues, ...expressionAttributeValues };
+      }
+
+      if (lastEvaluatedKey) {
+        queryParams.ExclusiveStartKey = lastEvaluatedKey;
+        console.log(`Using ExclusiveStartKey:`, JSON.stringify(lastEvaluatedKey, null, 2));
+      }
+
+      console.log(`Query ${queryCount} params:`, JSON.stringify(queryParams, null, 2));
+      
+      const result = await dynamodb.query(queryParams).promise();
+      
+      console.log(`Query ${queryCount} result: Count=${result.Count}, ScannedCount=${result.ScannedCount}, Items=${result.Items.length}`);
+      console.log(`LastEvaluatedKey returned:`, result.LastEvaluatedKey ? 'exists' : 'null');
+      
+      if (result.Items && result.Items.length > 0) {
+        allItems = allItems.concat(result.Items);
+        console.log(`Added ${result.Items.length} items. Total so far: ${allItems.length}`);
+        console.log('First item from batch created_at:', result.Items[0]?.created_at);
+        console.log('Last item from batch created_at:', result.Items[result.Items.length - 1]?.created_at);
+      }
+      
+      totalScanned += result.ScannedCount;
+      lastEvaluatedKey = result.LastEvaluatedKey;
+      
+      console.log(`Query ${queryCount} complete. Will continue: ${!!lastEvaluatedKey}`);
+      
+    } while (lastEvaluatedKey);
+    
+    console.log(`Pagination complete. Total items collected: ${allItems.length}, Total scanned: ${totalScanned}, Queries executed: ${queryCount}`);
+    
+    // Apply the original limit to the final results
+    const finalResults = allItems.slice(0, limit);
+    console.log(`Final results after applying limit ${limit}: ${finalResults.length} items`);
+    
+    // If no results, try a simple scan to see if table has any data
+    if (finalResults.length === 0) {
+      console.log('=== DEBUGGING: Trying simple scan ===');
+      try {
+        const scanResult = await dynamodb.scan({
+          TableName: 'JitEvents',
+          Limit: 1
+        }).promise();
+        console.log(`Scan result: Count=${scanResult.Count}, has any data: ${scanResult.Items.length > 0}`);
+        if (scanResult.Items.length > 0) {
+          console.log('First scan item:', JSON.stringify(scanResult.Items[0], null, 2));
+        }
+      } catch (scanError) {
+        console.error('Scan error:', scanError);
+      }
+    }
+    
+    res.json({
+      success: true,
+      data: finalResults,
+      count: finalResults.length,
+      totalCollected: allItems.length,
+      scannedCount: totalScanned,
+      queriesExecuted: queryCount
+    });
+  } catch (error) {
+    console.error('JitEvents query error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      code: error.code
+    });
+  }
+});
+
 app.post('/api/stuck-pr-executions', async (req, res) => {
   try {
     const { tenantId } = req.body;

@@ -146,10 +146,77 @@ body {
     font-weight: 600;
 }
 
-.filters-form {
+.filters-form-query {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: 2fr 0.8fr 0.6fr 1.3fr 1.3fr; /* tenant(2), status(0.8), limit(0.6), start-date(1.3), end-date(1.3) */
+    gap: 0.5rem;
+    align-items: end;
+}
+
+/* Specific width classes for inline layout */
+.form-group.tenant-width {
+    grid-column: span 1; /* Takes 3fr space */
+}
+
+.form-group.status-width {
+    grid-column: span 1; /* Takes 1fr space */
+}
+
+.form-group.limit-width {
+    grid-column: span 1; /* Takes 1fr space */
+}
+
+.form-group.date-width {
+    grid-column: span 1; /* Takes 2fr space each */
+}
+
+/* Remove the old responsive grid layout */
+/* Quarter width for normal fields */
+.form-group.quarter-width {
+    grid-column: span 1;
+}
+
+/* Eighth width for small fields like status, limit */
+.form-group.eighth-width {
+    grid-column: span 1;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 1200px) {
+    .filters-form {
+        grid-template-columns: 2fr 0.8fr 0.6fr 1.2fr 1.2fr;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 1024px) {
+    .filters-form {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    
+    .form-group.tenant-width {
+        grid-column: span 2;
+    }
+    
+    .form-group.status-width,
+    .form-group.limit-width,
+    .form-group.date-width {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 640px) {
+    .filters-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-group.tenant-width,
+    .form-group.status-width,
+    .form-group.limit-width,
+    .form-group.date-width {
+        grid-column: span 1;
+    }
 }
 
 .form-group {
@@ -158,18 +225,18 @@ body {
 }
 
 .form-group label {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     font-weight: 500;
     color: #cbd5e1;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .form-group input,
 .form-group select {
-    padding: 0.875rem 1rem;
+    padding: 0.6rem 0.75rem;
     border: 1px solid #475569;
     border-radius: 8px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     transition: all 0.3s ease;
     background: #334155;
     color: #e2e8f0;
@@ -187,7 +254,7 @@ body {
 }
 
 .custom-filters-section {
-    grid-column: 1 / -1;
+    grid-column: 1 / -1; /* Span all columns */
     margin-top: 1rem;
     padding: 1.5rem;
     border: 1px solid #60a5fa;
@@ -286,7 +353,7 @@ body {
 }
 
 .form-actions {
-    grid-column: 1 / -1;
+    grid-column: 1 / -1; /* Span all columns */
     display: flex;
     gap: 1rem;
     margin-top: 1.5rem;
