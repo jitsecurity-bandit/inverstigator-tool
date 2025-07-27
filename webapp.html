@@ -242,17 +242,18 @@
         }
 
         /* Responsive column widths */
-        .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 10%; } /* JIT Event ID */
-        .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 10%; } /* Event Name */
-        .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 10%; } /* Execution ID / Created At */
+        .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 9%; } /* JIT Event ID */
+        .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 9%; } /* Event Name */
+        .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 9%; } /* Execution ID / Created At */
         .results-table th:nth-child(4), .results-table td:nth-child(4) { width: 6%; } /* Status / Modified At */
-        .results-table th:nth-child(5), .results-table td:nth-child(5) { width: 9%; } /* Control Name / Progress */
-        .results-table th:nth-child(6), .results-table td:nth-child(6) { width: 9%; } /* Asset Name / Status */
-        .results-table th:nth-child(7), .results-table td:nth-child(7) { width: 6%; } /* Has Findings / Additional Data */
-        .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 8%; } /* Created At / Actions */
-        .results-table th:nth-child(9), .results-table td:nth-child(9) { width: 8%; } /* Completed At */
-        .results-table th:nth-child(10), .results-table td:nth-child(10) { width: 8%; } /* Additional Data */
-        .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 16%; } /* Actions - increased width */
+        .results-table th:nth-child(5), .results-table td:nth-child(5) { width: 8%; } /* Control Name / Progress */
+        .results-table th:nth-child(6), .results-table td:nth-child(6) { width: 8%; } /* Asset Name / Status */
+        .results-table th:nth-child(7), .results-table td:nth-child(7) { width: 5%; } /* PR Number */
+        .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 6%; } /* Has Findings / Additional Data */
+        .results-table th:nth-child(9), .results-table td:nth-child(9) { width: 7%; } /* Created At / Actions */
+        .results-table th:nth-child(10), .results-table td:nth-child(10) { width: 7%; } /* Completed At */
+        .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 8%; } /* Additional Data */
+        .results-table th:nth-child(12), .results-table td:nth-child(12) { width: 18%; } /* Actions - increased width */
 
         /* Media query for smaller screens */
         @media (max-width: 1200px) {
@@ -260,10 +261,10 @@
             .results-table td:nth-child(5),
             .results-table th:nth-child(6), 
             .results-table td:nth-child(6),
-            .results-table th:nth-child(7), 
-            .results-table td:nth-child(7),
-            .results-table th:nth-child(9), 
-            .results-table td:nth-child(9) {
+            .results-table th:nth-child(8), 
+            .results-table td:nth-child(8),
+            .results-table th:nth-child(10), 
+            .results-table td:nth-child(10) {
                 display: none;
             }
 
@@ -271,23 +272,25 @@
             .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 15%; }
             .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 15%; }
             .results-table th:nth-child(4), .results-table td:nth-child(4) { width: 8%; }
-            .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 12%; }
-            .results-table th:nth-child(10), .results-table td:nth-child(10) { width: 15%; }
-            .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 20%; }
+            .results-table th:nth-child(7), .results-table td:nth-child(7) { width: 8%; }
+            .results-table th:nth-child(9), .results-table td:nth-child(9) { width: 12%; }
+            .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 15%; }
+            .results-table th:nth-child(12), .results-table td:nth-child(12) { width: 20%; }
         }
 
         /* Media query for mobile devices */
         @media (max-width: 768px) {
             .results-table th:nth-child(1), .results-table td:nth-child(1),
             .results-table th:nth-child(2), .results-table td:nth-child(2),
-            .results-table th:nth-child(10), .results-table td:nth-child(10) {
+            .results-table th:nth-child(11), .results-table td:nth-child(11) {
                 display: none;
             }
 
             .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 30%; }
             .results-table th:nth-child(4), .results-table td:nth-child(4) { width: 20%; }
-            .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 20%; }
-            .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 30%; }
+            .results-table th:nth-child(7), .results-table td:nth-child(7) { width: 15%; }
+            .results-table th:nth-child(9), .results-table td:nth-child(9) { width: 20%; }
+            .results-table th:nth-child(12), .results-table td:nth-child(12) { width: 30%; }
 
             .action-btn {
                 padding: 0.4rem 0.4rem;
@@ -1184,6 +1187,26 @@
             gap: 1.5rem;
         }
 
+        /* Custom filters examples styling */
+        .custom-filters-examples {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(55, 65, 81, 0.3);
+            border: 1px solid #374151;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: #9ca3af;
+        }
+
+        .custom-filters-examples code {
+            background: rgba(96, 165, 250, 0.1);
+            color: #93c5fd;
+            padding: 0.125rem 0.25rem;
+            border-radius: 3px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
+            font-size: 0.8rem;
+        }
+
         /* Grid layout classes are defined in styles.css */
     </style>
 </head>
@@ -1288,6 +1311,15 @@
                                 </div>
                             </div>
                             <div id="custom-filters-container"></div>
+                            <div class="custom-filters-examples">
+                                <small>
+                                    <strong>Examples:</strong>
+                                    <code>jit_event_name</code>, 
+                                    <code>context.jit_event.pull_request_number</code>, 
+                                    <code>context.asset.asset_name</code>, 
+                                    <code>jit_event.pull_request_title</code>
+                                </small>
+                            </div>
                         </div>
 
                         <div class="form-actions">
@@ -1320,6 +1352,7 @@
                                     <th data-column="status">Status</th>
                                     <th data-column="control_name">Control Name</th>
                                     <th data-column="asset_name">Asset Name</th>
+                                    <th data-column="pull_request_number">PR Number</th>
                                     <th data-column="has_findings">Has Findings</th>
                                     <th data-column="created_at">Created At</th>
                                     <th data-column="completed_at">Completed At</th>
@@ -1699,7 +1732,7 @@
             
             filterDiv.innerHTML = `
                 <div class="filter-inputs">
-                    <input type="text" class="filter-field" placeholder="Field name (e.g., jit_event_name)" value="${field}">
+                    <input type="text" class="filter-field" placeholder="Field name (e.g., jit_event_name, context.jit_event.pull_request_number)" value="${field}">
                     <select class="filter-operator">
                         <option value="=" ${operator === '=' ? 'selected' : ''}>Equals</option>
                         <option value="contains" ${operator === 'contains' ? 'selected' : ''}>Contains</option>
@@ -2020,6 +2053,7 @@
                     <th data-column="status">Status</th>
                     <th data-column="control_name">Control Name</th>
                     <th data-column="asset_name">Asset Name</th>
+                    <th data-column="pull_request_number">PR Number</th>
                     <th data-column="has_findings">Has Findings</th>
                     <th data-column="created_at">Created At</th>
                     <th data-column="completed_at">Completed At</th>
@@ -2030,6 +2064,7 @@
                 thead.innerHTML = `
                     <th data-column="jit_event_id">JIT Event ID</th>
                     <th data-column="jit_event_name">Event Name</th>
+                    <th data-column="pull_request_number">PR Number</th>
                     <th data-column="created_at">Created At</th>
                     <th data-column="modified_at">Modified At</th>
                     <th data-column="progress">Progress</th>
@@ -2064,6 +2099,7 @@
             const status = item.status || 'unknown';
             const controlName = item.control_name || 'N/A';
             const assetName = item.asset_name || 'N/A';
+            const pullRequestNumber = item.context?.jit_event?.pull_request_number || 'N/A';
             const hasFindings = item.has_findings || 'N/A';
             const completedAt = formatDate(item.completed_at);
             
@@ -2098,6 +2134,11 @@
                         <div class="cell-content">
                             <span class="cell-text">${truncateText(assetName, 25)}</span>
                             ${assetName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${assetName}')">⋯</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${pullRequestNumber}">
+                        <div class="cell-content">
+                            <span class="cell-text">${pullRequestNumber}</span>
                         </div>
                     </td>
                     <td class="expandable-cell" title="${hasFindings}">
@@ -2136,6 +2177,7 @@
 
         function renderEventRow(item, index, jitEventId, jitEventName, createdAt, additionalFields) {
             const modifiedAt = formatDate(item.modified_at);
+            const pullRequestNumber = item.jit_event?.pull_request_number || 'N/A';
             
             // Calculate progress from remaining_assets and total_assets
             const remainingAssets = item.remaining_assets || 0;
@@ -2167,6 +2209,11 @@
                         <div class="cell-content">
                             <span class="cell-text">${truncateText(jitEventName, 25)}</span>
                             ${jitEventName.length > 25 ? `<button class="expand-cell-btn" onclick="toggleCellExpansion(this, '${jitEventName}')">⋯</button>` : ''}
+                        </div>
+                    </td>
+                    <td class="expandable-cell" title="${pullRequestNumber}">
+                        <div class="cell-content">
+                            <span class="cell-text">${pullRequestNumber}</span>
                         </div>
                     </td>
                     <td class="expandable-cell" title="${createdAt}">
@@ -2297,9 +2344,9 @@ kubectl-prod -n ${tenantId} logs $POD_NAME`;
             let mainFields;
             
             if (queryMode === 'executions') {
-                mainFields = ['jit_event_id', 'event_id', 'jit_event_name', 'execution_id', 'status', 'control_name', 'asset_name', 'has_findings', 'created_at', 'completed_at', 'errors'];
+                mainFields = ['jit_event_id', 'event_id', 'jit_event_name', 'execution_id', 'status', 'control_name', 'asset_name', 'pull_request_number', 'has_findings', 'created_at', 'completed_at', 'errors'];
             } else {
-                mainFields = ['jit_event_id', 'jit_event_name', 'created_at', 'modified_at', 'remaining_assets', 'total_assets', 'status', 'GSI2PK_TENANT_ID_STATUS', 'tenant_id'];
+                mainFields = ['jit_event_id', 'jit_event_name', 'pull_request_number', 'created_at', 'modified_at', 'remaining_assets', 'total_assets', 'status', 'GSI2PK_TENANT_ID_STATUS', 'tenant_id'];
             }
             
             const additionalFields = [];

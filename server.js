@@ -168,34 +168,48 @@ app.post('/api/query', async (req, res) => {
         
         customFilters.forEach((filter, index) => {
           const { field, operator, value } = filter;
-          const fieldPlaceholder = `#customField${index}`;
-          const valuePlaceholder = `:customValue${index}`;
           
-          expressionAttributeNames[fieldPlaceholder] = field;
+          // Handle nested fields (e.g., "context.jit_event.pull_request_number")
+          let fieldExpression;
+          if (field.includes('.')) {
+            const fieldParts = field.split('.');
+            const fieldPlaceholders = fieldParts.map((part, partIndex) => {
+              const placeholder = `#customField${index}_${partIndex}`;
+              expressionAttributeNames[placeholder] = part;
+              return placeholder;
+            });
+            fieldExpression = fieldPlaceholders.join('.');
+          } else {
+            const fieldPlaceholder = `#customField${index}`;
+            expressionAttributeNames[fieldPlaceholder] = field;
+            fieldExpression = fieldPlaceholder;
+          }
+          
+          const valuePlaceholder = `:customValue${index}`;
           
           switch (operator) {
             case '=':
-              filterExpressions.push(`${fieldPlaceholder} = ${valuePlaceholder}`);
+              filterExpressions.push(`${fieldExpression} = ${valuePlaceholder}`);
               expressionAttributeValues[valuePlaceholder] = value;
               break;
             case '<':
-              filterExpressions.push(`${fieldPlaceholder} < ${valuePlaceholder}`);
+              filterExpressions.push(`${fieldExpression} < ${valuePlaceholder}`);
               expressionAttributeValues[valuePlaceholder] = value;
               break;
             case '>':
-              filterExpressions.push(`${fieldPlaceholder} > ${valuePlaceholder}`);
+              filterExpressions.push(`${fieldExpression} > ${valuePlaceholder}`);
               expressionAttributeValues[valuePlaceholder] = value;
               break;
             case 'contains':
-              filterExpressions.push(`contains(${fieldPlaceholder}, ${valuePlaceholder})`);
+              filterExpressions.push(`contains(${fieldExpression}, ${valuePlaceholder})`);
               expressionAttributeValues[valuePlaceholder] = value;
               break;
             case 'begins_with':
-              filterExpressions.push(`begins_with(${fieldPlaceholder}, ${valuePlaceholder})`);
+              filterExpressions.push(`begins_with(${fieldExpression}, ${valuePlaceholder})`);
               expressionAttributeValues[valuePlaceholder] = value;
               break;
             default:
-              filterExpressions.push(`${fieldPlaceholder} = ${valuePlaceholder}`);
+              filterExpressions.push(`${fieldExpression} = ${valuePlaceholder}`);
               expressionAttributeValues[valuePlaceholder] = value;
           }
         });
@@ -418,34 +432,48 @@ app.post('/api/query-jit-events', async (req, res) => {
       if (customFilters && customFilters.length > 0) {
         customFilters.forEach((filter, index) => {
           const { field, operator, value } = filter;
-          const fieldPlaceholder = `#customField${index}`;
-          const valuePlaceholder = `:customValue${index}`;
           
-          expressionAttributeNames[fieldPlaceholder] = field;
+          // Handle nested fields (e.g., "jit_event.pull_request_number")
+          let fieldExpression;
+          if (field.includes('.')) {
+            const fieldParts = field.split('.');
+            const fieldPlaceholders = fieldParts.map((part, partIndex) => {
+              const placeholder = `#customField${index}_${partIndex}`;
+              expressionAttributeNames[placeholder] = part;
+              return placeholder;
+            });
+            fieldExpression = fieldPlaceholders.join('.');
+          } else {
+            const fieldPlaceholder = `#customField${index}`;
+            expressionAttributeNames[fieldPlaceholder] = field;
+            fieldExpression = fieldPlaceholder;
+          }
+          
+          const valuePlaceholder = `:customValue${index}`;
           
           switch (operator) {
             case '=':
-              filterExpressions.push(`${fieldPlaceholder} = ${valuePlaceholder}`);
+              filterExpressions.push(`${fieldExpression} = ${valuePlaceholder}`);
               expressionAttributeValues[valuePlaceholder] = value;
               break;
             case '<':
-              filterExpressions.push(`${fieldPlaceholder} < ${valuePlaceholder}`);
+              filterExpressions.push(`${fieldExpression} < ${valuePlaceholder}`);
               expressionAttributeValues[valuePlaceholder] = value;
               break;
             case '>':
-              filterExpressions.push(`${fieldPlaceholder} > ${valuePlaceholder}`);
+              filterExpressions.push(`${fieldExpression} > ${valuePlaceholder}`);
               expressionAttributeValues[valuePlaceholder] = value;
               break;
             case 'contains':
-              filterExpressions.push(`contains(${fieldPlaceholder}, ${valuePlaceholder})`);
+              filterExpressions.push(`contains(${fieldExpression}, ${valuePlaceholder})`);
               expressionAttributeValues[valuePlaceholder] = value;
               break;
             case 'begins_with':
-              filterExpressions.push(`begins_with(${fieldPlaceholder}, ${valuePlaceholder})`);
+              filterExpressions.push(`begins_with(${fieldExpression}, ${valuePlaceholder})`);
               expressionAttributeValues[valuePlaceholder] = value;
               break;
             default:
-              filterExpressions.push(`${fieldPlaceholder} = ${valuePlaceholder}`);
+              filterExpressions.push(`${fieldExpression} = ${valuePlaceholder}`);
               expressionAttributeValues[valuePlaceholder] = value;
           }
         });
@@ -539,8 +567,8 @@ app.post('/api/s3-signed-url', async (req, res) => {
 
     // Generate an S3 signed URL for downloading the output file
     const s3 = new AWS.S3();
-    const bucketName = 'jit-orchestrator-outputs-prod';
-    const key = `${tenantId}/${jitEventId}/${executionId}.json`;
+    const bucketName = 'jit-execution-outputs-prod';
+    const key = `${tenantId}/${jitEventId}-${executionId}/output.zip`;
 
     // Create a signed URL that expires in 60 seconds
     const signedUrl = s3.getSignedUrl('getObject', {
@@ -552,7 +580,7 @@ app.post('/api/s3-signed-url', async (req, res) => {
     return res.json({
       success: true,
       signedUrl,
-      fileName: `${executionId}.json`
+      fileName: `output.zip`
     });
   } catch (error) {
     console.error('Error generating S3 signed URL:', error);
