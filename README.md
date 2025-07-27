@@ -154,6 +154,8 @@ FilterExpression: contains(field, value) (for custom filters)
 - **Copy ID**: Copy execution ID to clipboard  
 - **Expand Row**: Show complete JSON for the execution
 - **Export**: Save results to JSON or CSV
+- **Copy kubectl logs**: Copy kubectl logs command for troubleshooting
+- **Download Output**: Download execution output file from S3 storage
 
 ## Building for Distribution
 
@@ -188,6 +190,7 @@ npm run webapp
 - **Region**: us-east-1 (default)
 - **Tables**: JobExecutions, JitEvents
 - **Indexes**: GSI1 (both tables)
+- **S3 Buckets**: jit-execution-outputs-prod (execution output files)
 
 ### Environment Variables
 ```bash

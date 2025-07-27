@@ -84,6 +84,24 @@ async function initializeApp() {
 
 // API Routes
 
+// Get AWS configuration
+app.get('/api/aws-config', async (req, res) => {
+  try {
+    // Check if AWS credentials are available
+    const hasCredentials = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+
+    res.json({
+      region: AWS.config.region,
+      hasCredentials,
+      sdkVersion: AWS.VERSION
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message
+    });
+  }
+});
+
 // Debug endpoint for AWS validation
 app.get('/api/debug-aws', async (req, res) => {
   try {
@@ -255,6 +273,82 @@ app.post('/api/query', async (req, res) => {
     });
   }
 });
+
+// // Mountpoint download endpoint
+// app.post('/api/mountpoint-download', async (req, res) => {
+//   try {
+//     const { tenantId, jitEventId } = req.body;
+//
+//     if (!tenantId || !jitEventId) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Missing required parameters: tenantId and jitEventId'
+//       });
+//     }
+//
+//     console.log(`=== MOUNTPOINT DOWNLOAD REQUEST ===`);
+//     console.log(`TenantId: ${tenantId}`);
+//     console.log(`JitEventId: ${jitEventId}`);
+//
+//     // Initialize S3 client with fresh credentials
+//     const s3 = new AWS.S3({
+//       region: AWS.config.region,
+//       signatureVersion: 'v4'
+//     });
+//
+//     // Construct the bucket name and prefix based on tenantId and jitEventId
+//     const bucketName = process.env.S3_BUCKET_NAME || 'jit-events-storage';
+//     const prefix = `${tenantId}/${jitEventId}/mountpoint/`;
+//
+//     console.log(`Checking S3 bucket: ${bucketName}`);
+//     console.log(`Path prefix: ${prefix}`);
+//
+//     try {
+//       const listResult = await s3.listObjectsV2({
+//         Bucket: bucketName,
+//         Prefix: prefix,
+//         MaxKeys: 5 // Just to check if directory exists
+//       }).promise();
+//
+//       if (!listResult.Contents || listResult.Contents.length === 0) {
+//         return res.status(404).json({
+//           success: false,
+//           error: 'No files found in the specified mountpoint directory'
+//         });
+//       }
+//
+//       console.log(`Found ${listResult.Contents.length} files in the mountpoint directory`);
+//
+//       // Create a signed URL that expires in 15 minutes (900 seconds)
+//       const signedUrl = s3.getSignedUrl('getObject', {
+//         Bucket: bucketName,
+//         Key: listResult.Contents[0].Key, // Get the first file
+//         Expires: 900
+//       });
+//
+//       return res.json({
+//         success: true,
+//         signedUrl,
+//         fileCount: listResult.Contents.length,
+//         expiresIn: '15 minutes'
+//       });
+//
+//     } catch (s3Error) {
+//       console.error('Error listing objects in bucket:', s3Error);
+//       return res.status(500).json({
+//         success: false,
+//         error: `S3 error: ${s3Error.message}`,
+//         code: s3Error.code
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Mountpoint download error:', error);
+//     return res.status(500).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// });
 
 // New endpoint for querying JitEvents table
 app.post('/api/query-jit-events', async (req, res) => {
@@ -431,6 +525,163 @@ app.post('/api/query-jit-events', async (req, res) => {
   }
 });
 
+// Generate S3 signed URL for file download
+app.post('/api/s3-signed-url', async (req, res) => {
+  try {
+    const { tenantId, jitEventId, executionId } = req.body;
+
+    if (!tenantId || !jitEventId || !executionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required parameters'
+      });
+    }
+
+    // Generate an S3 signed URL for downloading the output file
+    const s3 = new AWS.S3();
+    const bucketName = 'jit-orchestrator-outputs-prod';
+    const key = `${tenantId}/${jitEventId}/${executionId}.json`;
+
+    // Create a signed URL that expires in 60 seconds
+    const signedUrl = s3.getSignedUrl('getObject', {
+      Bucket: bucketName,
+      Key: key,
+      Expires: 60 // URL expiration time in seconds
+    });
+
+    return res.json({
+      success: true,
+      signedUrl,
+      fileName: `${executionId}.json`
+    });
+  } catch (error) {
+    console.error('Error generating S3 signed URL:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Generate S3 signed URL for mountpoint directory download
+app.post('/api/mountpoint-download', async (req, res) => {
+  try {
+    const { tenantId, jitEventId } = req.body;
+
+    if (!tenantId || !jitEventId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required parameters'
+      });
+    }
+
+    // Generate a signed URL for the mountpoint directory
+    const s3 = new AWS.S3();
+
+    // Try different possible bucket names and path formats
+    // This helps diagnose potential configuration issues
+    const bucketOptions = [
+      { bucket: 'jit-orchestrator-mountpoint-prod', prefix: `${tenantId}/${jitEventId}/` },
+    ];
+
+    console.log(`Trying multiple bucket and path combinations for tenant: ${tenantId}, event: ${jitEventId}`);
+
+    // Variable to track if we found files in any bucket/path combination
+    let foundFiles = false;
+    let bucketName, prefix, listResult;
+
+    // Try each bucket and path combination until we find files
+    try {
+      for (const option of bucketOptions) {
+        console.log(`Checking bucket: ${option.bucket}, prefix: ${option.prefix}`);
+
+        try {
+          listResult = await s3.listObjectsV2({
+            Bucket: option.bucket,
+            Prefix: option.prefix,
+            MaxKeys: 10 // Increased to see more potential files
+          }).promise();
+
+          console.log(`Found ${listResult.Contents ? listResult.Contents.length : 0} files in ${option.bucket}/${option.prefix}`);
+
+          if (listResult.Contents && listResult.Contents.length > 0) {
+            // We found files - save the bucket and prefix for later use
+            bucketName = option.bucket;
+            prefix = option.prefix;
+            foundFiles = true;
+            break;
+          }
+        } catch (bucketError) {
+          console.log(`Error checking bucket ${option.bucket}: ${bucketError.message}`);
+          // Continue to the next bucket option
+        }
+      }
+
+      if (!foundFiles) {
+        console.error(`No files found in any of the bucket/path combinations for tenant: ${tenantId}, event: ${jitEventId}`);
+        return res.status(404).json({
+          success: false,
+          error: 'No files found in the specified mountpoint directory',
+          triedBuckets: bucketOptions.map(opt => `${opt.bucket}/${opt.prefix}`)
+        });
+      }
+
+      // Create a zip file of all the objects in this directory
+      // For this simplified example, we'll just return a signed URL to the directory prefix
+      // In production, you would implement actual directory zipping
+
+      // Sort the files by size to find the most relevant one (non-empty files first)
+      const sortedFiles = [...listResult.Contents].sort((a, b) => b.Size - a.Size);
+
+      // Log detailed information about found files
+      console.log('Found files:');
+      sortedFiles.slice(0, 5).forEach((file, index) => {
+        console.log(`${index + 1}. ${file.Key} (${file.Size} bytes)`);
+      });
+
+      // Choose the first non-empty file if available, otherwise just use the first file
+      const fileToDownload = sortedFiles.find(file => file.Size > 0) || sortedFiles[0];
+
+      // Create a signed URL that expires in 5 minutes (300 seconds)
+      // This gives users more time to download the file
+      const signedUrl = s3.getSignedUrl('getObject', {
+        Bucket: bucketName,
+        Key: fileToDownload.Key,
+        Expires: 300 // URL expiration time in seconds
+      });
+
+      // Extract a more meaningful filename from the key
+      const keyParts = fileToDownload.Key.split('/');
+      const fileName = keyParts[keyParts.length - 1] || `mountpoint-${jitEventId}-file`;
+
+      console.log(`Generated signed URL for file: ${fileToDownload.Key} (${fileToDownload.Size} bytes)`);
+
+      return res.json({
+        success: true,
+        signedUrl,
+        fileName,
+        fileSize: fileToDownload.Size,
+        bucket: bucketName,
+        key: fileToDownload.Key,
+        totalFiles: listResult.Contents.length,
+        expiresIn: '5 minutes'
+      });
+    } catch (error) {
+      console.error('Error generating mountpoint download URL:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  } catch (error) {
+    console.error('Error in mountpoint download endpoint:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.post('/api/stuck-pr-executions', async (req, res) => {
   try {
     const { tenantId } = req.body;
@@ -443,7 +694,7 @@ app.post('/api/stuck-pr-executions', async (req, res) => {
     console.log(`Searching for ALL PR events from ${twoDaysAgoISO} onwards for tenant ${tenantId} (UTC times)`);
     
     // Query JobExecutions table with correct GSI1PK format and pagination
-    // NOTE: We want ALL PR events to find latest per PR, regardless of status initially
+    // NOTE: We want ALL PR events to find latest per PR, regardless of st0atus initially
     let allItems = [];
     let lastEvaluatedKey = null;
     let totalScanned = 0;

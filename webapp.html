@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DynamoDB Debug Tool - Web App</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1542.0.min.js"></script>
     <style>
         /* Tab-specific styles */
         .tabs {
@@ -136,6 +137,15 @@
             background: #1e293b;
             border-radius: 8px;
             overflow: hidden;
+            table-layout: fixed;
+        }
+
+        /* Responsive stuck PR table */
+        @media (max-width: 1400px) {
+            .stuck-pr-table {
+                display: block;
+                overflow-x: auto;
+            }
         }
         
         .stuck-pr-table th,
@@ -220,7 +230,7 @@
         .results-table {
             table-layout: fixed;
             width: 100%;
-            min-width: 1600px;
+            min-width: 100%;
         }
 
         .results-table th,
@@ -231,18 +241,59 @@
             padding: 0.75rem 0.5rem;
         }
 
-        /* Specific column widths */
-        .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 12%; } /* JIT Event ID */
-        .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 12%; } /* Event Name */
-        .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 12%; } /* Execution ID / Created At */
+        /* Responsive column widths */
+        .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 10%; } /* JIT Event ID */
+        .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 10%; } /* Event Name */
+        .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 10%; } /* Execution ID / Created At */
         .results-table th:nth-child(4), .results-table td:nth-child(4) { width: 6%; } /* Status / Modified At */
-        .results-table th:nth-child(5), .results-table td:nth-child(5) { width: 10%; } /* Control Name / Progress */
-        .results-table th:nth-child(6), .results-table td:nth-child(6) { width: 10%; } /* Asset Name / Status */
+        .results-table th:nth-child(5), .results-table td:nth-child(5) { width: 9%; } /* Control Name / Progress */
+        .results-table th:nth-child(6), .results-table td:nth-child(6) { width: 9%; } /* Asset Name / Status */
         .results-table th:nth-child(7), .results-table td:nth-child(7) { width: 6%; } /* Has Findings / Additional Data */
-        .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 9%; } /* Created At / Actions */
-        .results-table th:nth-child(9), .results-table td:nth-child(9) { width: 9%; } /* Completed At */
-        .results-table th:nth-child(10), .results-table td:nth-child(10) { width: 7%; } /* Additional Data */
-        .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 7%; } /* Actions */
+        .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 8%; } /* Created At / Actions */
+        .results-table th:nth-child(9), .results-table td:nth-child(9) { width: 8%; } /* Completed At */
+        .results-table th:nth-child(10), .results-table td:nth-child(10) { width: 8%; } /* Additional Data */
+        .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 16%; } /* Actions - increased width */
+
+        /* Media query for smaller screens */
+        @media (max-width: 1200px) {
+            .results-table th:nth-child(5),
+            .results-table td:nth-child(5),
+            .results-table th:nth-child(6), 
+            .results-table td:nth-child(6),
+            .results-table th:nth-child(7), 
+            .results-table td:nth-child(7),
+            .results-table th:nth-child(9), 
+            .results-table td:nth-child(9) {
+                display: none;
+            }
+
+            .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 15%; }
+            .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 15%; }
+            .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 15%; }
+            .results-table th:nth-child(4), .results-table td:nth-child(4) { width: 8%; }
+            .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 12%; }
+            .results-table th:nth-child(10), .results-table td:nth-child(10) { width: 15%; }
+            .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 20%; }
+        }
+
+        /* Media query for mobile devices */
+        @media (max-width: 768px) {
+            .results-table th:nth-child(1), .results-table td:nth-child(1),
+            .results-table th:nth-child(2), .results-table td:nth-child(2),
+            .results-table th:nth-child(10), .results-table td:nth-child(10) {
+                display: none;
+            }
+
+            .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 30%; }
+            .results-table th:nth-child(4), .results-table td:nth-child(4) { width: 20%; }
+            .results-table th:nth-child(8), .results-table td:nth-child(8) { width: 20%; }
+            .results-table th:nth-child(11), .results-table td:nth-child(11) { width: 30%; }
+
+            .action-btn {
+                padding: 0.4rem 0.4rem;
+                font-size: 0.75rem;
+            }
+        }
 
         /* Expanded cell styles */
         .cell-content.expanded {
@@ -275,6 +326,8 @@
             overflow-x: auto;
             border: 1px solid #475569;
             border-radius: 8px;
+            max-width: 100%;
+            margin-bottom: 2rem;
         }
 
         .errors-cell {
@@ -401,11 +454,14 @@
             background: #475569;
             border: none;
             color: #e2e8f0;
-            padding: 0.4rem 0.8rem;
+            padding: 0.4rem 0.6rem;
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.8rem;
-            margin-right: 0.5rem;
+            margin-right: 0.3rem;
+            margin-bottom: 0.3rem;
+            white-space: nowrap;
+            display: inline-block;
             transition: all 0.2s;
         }
 
@@ -442,7 +498,8 @@
         }
 
         .actions-cell {
-            white-space: nowrap;
+            white-space: normal;
+            min-width: 150px;
         }
 
         /* Enhanced expanded view styles */
@@ -510,6 +567,15 @@
 
         .info-value.status-started {
             color: #fbbf24;
+        }
+
+        .action-btn.download {
+            background-color: #4CAF50;
+            margin-left: 5px;
+        }
+
+        .action-btn.download:hover {
+            background-color: #45a049;
         }
 
         .info-value.status-success {
@@ -602,6 +668,37 @@
                 gap: 1rem;
                 align-items: flex-start;
             }
+        }
+
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        .notification.info {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .notification.fade-out {
+            opacity: 0;
         }
 
         /* Hide the old inline expansion */
@@ -1332,6 +1429,11 @@
             updateAwsStatus();
             addCustomFilter();
             
+            // Initialize AWS SDK with region
+            AWS.config.update({
+                region: 'us-east-1'
+            });
+
             // Initialize the mode switch state to ensure form validation is properly set up
             const checkedRadio = document.querySelector('input[name="queryMode"]:checked');
             if (checkedRadio) {
@@ -1365,12 +1467,16 @@
                 const statusIndicator = document.querySelector('.status-indicator');
                 const statusText = document.querySelector('.status-text');
                 
+                // Verify AWS SDK is properly loaded
+                const awsSdkVersion = AWS.VERSION || 'unknown';
+                console.log('AWS SDK Version:', awsSdkVersion);
+
                 if (config.error) {
                     statusIndicator.className = 'status-indicator error';
                     statusText.textContent = `AWS Error: ${config.error}`;
                 } else if (config.hasCredentials) {
                     statusIndicator.className = 'status-indicator connected';
-                    statusText.textContent = `Connected: ${config.region}`;
+                    statusText.textContent = `Connected: ${config.region} (SDK v${awsSdkVersion})`;
                 } else {
                     statusIndicator.className = 'status-indicator error';
                     statusText.textContent = 'No AWS credentials found';
@@ -1414,6 +1520,140 @@
                     document.getElementById('stuck-pr-btn').click();
                 }
             });
+        }
+
+
+        async function downloadOutputFile(tenantId, jitEventId, executionId) {
+            try {
+                showNotification('Preparing download...', 'info');
+
+                // Use server-side endpoint to generate signed URL
+                const response = await fetch('/api/s3-signed-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tenantId,
+                        jitEventId,
+                        executionId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to generate download URL');
+                }
+
+                // Create a temporary link element to trigger the download
+                const link = document.createElement('a');
+                link.href = result.signedUrl;
+                link.download = result.fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showNotification('Downloading output file...', 'success');
+            } catch (error) {
+                console.error('Error downloading file:', error);
+                showNotification('Error downloading output file: ' + error.message, 'error');
+            }
+        }
+
+        // Function to download mountpoint directory
+        async function downloadMountpoint(tenantId, jitEventId) {
+            try {
+                showNotification('Preparing mountpoint download...', 'info');
+
+                // Verify we have the required parameters
+                if (!tenantId || !jitEventId) {
+                    throw new Error('Missing required parameters: tenantId and jitEventId');
+                }
+
+                    // Verify we have the required parameters
+                    if (!tenantId || !jitEventId) {
+                        throw new Error('Missing required parameters: tenantId and jitEventId');
+                    }
+
+                    // Check AWS token status first
+                    const awsStatus = await fetch('/api/aws-config');
+                    const awsConfig = await awsStatus.json();
+
+                    if (awsConfig.error || !awsConfig.hasCredentials) {
+                        throw new Error('AWS credentials are invalid or expired. Please refresh your session.');
+                    }
+
+                    // Use server-side endpoint to generate signed URL for mountpoint
+                    const response = await fetch('/api/mountpoint-download', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            tenantId,
+                            jitEventId
+                        })
+                    });
+
+                    // Check for non-200 responses
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Server returned ${response.status}: ${response.statusText}`);
+                    }
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    // Check for more detailed error information
+                    if (result.triedBuckets) {
+                        console.error('Tried buckets:', result.triedBuckets);
+                        throw new Error(`${result.error} - Checked: ${result.triedBuckets.join(', ')}`);
+                    } else {
+                        throw new Error(result.error || 'Failed to generate mountpoint download URL');
+                    }
+                }
+
+                console.log('Mountpoint download details:', {
+                    fileName: result.fileName,
+                    fileSize: result.fileSize,
+                    bucket: result.bucket,
+                    key: result.key,
+                    totalFiles: result.totalFiles
+                });
+
+                // Create a temporary link element to trigger the download
+                const link = document.createElement('a');
+                link.href = result.signedUrl;
+                link.download = result.fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showNotification(`Downloading ${result.fileName} (${formatFileSize(result.fileSize)})...`, 'success');
+            } catch (error) {
+                console.error('Error downloading mountpoint:', error);
+
+                // Check for token expiration
+                if (error.message.includes('ExpiredToken') || error.message.includes('expired')) {
+                    showNotification('Your AWS session has expired. Please refresh your session and try again.', 'error');
+                } else {
+                    showNotification('Error downloading mountpoint: ' + error.message, 'error');
+                }
+            }
+        }
+
+        // Show notification function
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            // Remove notification after 3 seconds
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 500);
+            }, 3000);
         }
 
         function handleModeSwitch(event) {
@@ -1885,7 +2125,10 @@
                         ` : 'No additional data'}
                     </td>
                     <td class="actions-cell">
-                        <button class="action-btn kubectl" onclick="copyKubectlLogsCommand('${executionId}')">Copy kubectl logs</button>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                            <button class="action-btn kubectl" onclick="copyKubectlLogsCommand('${executionId}')">kubectl logs</button>
+                            <button class="action-btn download" onclick="downloadOutputFile('${item.tenant_id}', '${jitEventId}', '${executionId}')">Download</button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -1951,9 +2194,12 @@
                         ` : 'No additional data'}
                     </td>
                     <td class="actions-cell">
-                        <button class="action-btn view" onclick="viewDetails('${jitEventId}')">View All</button>
-                        <button class="action-btn copy" onclick="copyToClipboard('${jitEventId}')">Copy ID</button>
-                        <button class="action-btn expand-row" onclick="openRecordModal(${index})">Expand</button>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                            <button class="action-btn view" onclick="viewDetails('${jitEventId}')">View</button>
+                            <button class="action-btn copy" onclick="copyToClipboard('${jitEventId}')">Copy</button>
+                            <button class="action-btn expand-row" onclick="openRecordModal(${index})">Expand</button>
+                            <button class="action-btn download" onclick="downloadMountpoint('${item.tenant_id}', '${jitEventId}')">Download</button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -2490,6 +2736,15 @@ kubectl-prod -n ${tenantId} logs $POD_NAME`;
                 console.error('Failed to copy:', err);
                 alert('Failed to copy field value.');
             });
+        }
+
+        // Helper function to format file sizes in human-readable format
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
         // Close modal on escape key
