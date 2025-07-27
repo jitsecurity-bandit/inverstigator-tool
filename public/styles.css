@@ -290,12 +290,14 @@ body {
 
 .filter-inputs {
     display: grid;
-    grid-template-columns: 1fr auto 1fr auto;
+    grid-template-columns: 1fr 1fr auto 1fr auto;
     gap: 1rem;
     align-items: center;
 }
 
 .filter-field,
+.filter-field-selector,
+.filter-field-custom,
 .filter-operator,
 .filter-value {
     padding: 0.75rem;
@@ -308,6 +310,8 @@ body {
 }
 
 .filter-field:focus,
+.filter-field-selector:focus,
+.filter-field-custom:focus,
 .filter-operator:focus,
 .filter-value:focus {
     outline: none;
@@ -316,17 +320,30 @@ body {
 }
 
 .filter-field::placeholder,
+.filter-field-custom::placeholder,
 .filter-value::placeholder {
     color: #94a3b8;
+}
+
+.filter-field-selector {
+    min-width: 200px;
 }
 
 .filter-operator {
     min-width: 140px;
 }
 
+.filter-field-selector option,
 .filter-operator option {
     background: #334155;
     color: #e2e8f0;
+}
+
+.filter-field-selector optgroup {
+    background: #1e293b;
+    color: #cbd5e1;
+    font-weight: 600;
+    font-style: normal;
 }
 
 .remove-filter-btn {

@@ -1725,9 +1725,49 @@
             filterDiv.className = 'custom-filter-row';
             filterDiv.dataset.filterId = filterId;
             
+            // Determine if we should show custom field or predefined
+            const isCustomField = field && !getPredefinedFieldValue(field);
+            const selectedField = isCustomField ? 'custom' : (field || '');
+            
             filterDiv.innerHTML = `
                 <div class="filter-inputs">
-                    <input type="text" class="filter-field" placeholder="Field name (e.g., jit_event_name, context.jit_event.pull_request_number)" value="${field}">
+                    <select class="filter-field-selector" onchange="handleFieldChange('${filterId}')">
+                        <option value="">Select Field...</option>
+                        <optgroup label="Job Execution Fields">
+                            <option value="jit_event_id" ${selectedField === 'jit_event_id' ? 'selected' : ''}>JIT Event ID</option>
+                            <option value="execution_id" ${selectedField === 'execution_id' ? 'selected' : ''}>Execution ID</option>
+                            <option value="jit_event_name" ${selectedField === 'jit_event_name' ? 'selected' : ''}>JIT Event Name</option>
+                            <option value="asset_name" ${selectedField === 'asset_name' ? 'selected' : ''}>Asset Name</option>
+                            <option value="control_name" ${selectedField === 'control_name' ? 'selected' : ''}>Control Name</option>
+                            <option value="status" ${selectedField === 'status' ? 'selected' : ''}>Status</option>
+                        </optgroup>
+                        <optgroup label="Git/PR Fields">
+                            <option value="context.jit_event.pull_request_number" ${selectedField === 'context.jit_event.pull_request_number' ? 'selected' : ''}>Pull Request Number</option>
+                            <option value="context.jit_event.branch" ${selectedField === 'context.jit_event.branch' ? 'selected' : ''}>Branch</option>
+                            <option value="context.jit_event.owner" ${selectedField === 'context.jit_event.owner' ? 'selected' : ''}>Repository Owner</option>
+                            <option value="context.jit_event.original_repository" ${selectedField === 'context.jit_event.original_repository' ? 'selected' : ''}>Repository Name</option>
+                            <option value="context.jit_event.pull_request_title" ${selectedField === 'context.jit_event.pull_request_title' ? 'selected' : ''}>PR Title</option>
+                            <option value="context.jit_event.commits.head_sha" ${selectedField === 'context.jit_event.commits.head_sha' ? 'selected' : ''}>Commit SHA</option>
+                            <option value="context.jit_event.user_vendor_name" ${selectedField === 'context.jit_event.user_vendor_name' ? 'selected' : ''}>User Name</option>
+                            <option value="context.jit_event.url" ${selectedField === 'context.jit_event.url' ? 'selected' : ''}>URL</option>
+                        </optgroup>
+                        <optgroup label="JIT Event Fields (for JIT Events table)">
+                            <option value="jit_event.pull_request_number" ${selectedField === 'jit_event.pull_request_number' ? 'selected' : ''}>Pull Request Number (Events)</option>
+                            <option value="jit_event.branch" ${selectedField === 'jit_event.branch' ? 'selected' : ''}>Branch (Events)</option>
+                            <option value="jit_event.owner" ${selectedField === 'jit_event.owner' ? 'selected' : ''}>Repository Owner (Events)</option>
+                            <option value="jit_event.original_repository" ${selectedField === 'jit_event.original_repository' ? 'selected' : ''}>Repository Name (Events)</option>
+                            <option value="jit_event.pull_request_title" ${selectedField === 'jit_event.pull_request_title' ? 'selected' : ''}>PR Title (Events)</option>
+                            <option value="jit_event.commits.head_sha" ${selectedField === 'jit_event.commits.head_sha' ? 'selected' : ''}>Commit SHA (Events)</option>
+                            <option value="jit_event.user_vendor_name" ${selectedField === 'jit_event.user_vendor_name' ? 'selected' : ''}>User Name (Events)</option>
+                            <option value="jit_event.url" ${selectedField === 'jit_event.url' ? 'selected' : ''}>URL (Events)</option>
+                        </optgroup>
+                        <optgroup label="Other">
+                            <option value="created_at" ${selectedField === 'created_at' ? 'selected' : ''}>Created At</option>
+                            <option value="updated_at" ${selectedField === 'updated_at' ? 'selected' : ''}>Updated At</option>
+                            <option value="custom" ${isCustomField ? 'selected' : ''}>Custom Field...</option>
+                        </optgroup>
+                    </select>
+                    <input type="text" class="filter-field-custom" placeholder="Enter custom field name" value="${isCustomField ? field : ''}" style="${isCustomField ? '' : 'display: none;'}">
                     <select class="filter-operator">
                         <option value="=" ${operator === '=' ? 'selected' : ''}>Equals</option>
                         <option value="contains" ${operator === 'contains' ? 'selected' : ''}>Contains</option>
@@ -1743,6 +1783,34 @@
             container.appendChild(filterDiv);
         }
 
+        function getPredefinedFieldValue(fieldName) {
+            const predefinedFields = [
+                'jit_event_id', 'execution_id', 'jit_event_name', 'asset_name', 'control_name', 'status',
+                'context.jit_event.pull_request_number', 'context.jit_event.branch', 'context.jit_event.owner',
+                'context.jit_event.original_repository', 'context.jit_event.pull_request_title',
+                'context.jit_event.commits.head_sha', 'context.jit_event.user_vendor_name', 'context.jit_event.url',
+                'jit_event.pull_request_number', 'jit_event.branch', 'jit_event.owner',
+                'jit_event.original_repository', 'jit_event.pull_request_title',
+                'jit_event.commits.head_sha', 'jit_event.user_vendor_name', 'jit_event.url',
+                'created_at', 'updated_at'
+            ];
+            return predefinedFields.includes(fieldName) ? fieldName : null;
+        }
+
+        function handleFieldChange(filterId) {
+            const filterRow = document.querySelector(`[data-filter-id="${filterId}"]`);
+            const selector = filterRow.querySelector('.filter-field-selector');
+            const customInput = filterRow.querySelector('.filter-field-custom');
+            
+            if (selector.value === 'custom') {
+                customInput.style.display = '';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                customInput.value = '';
+            }
+        }
+
         function removeCustomFilter(filterId) {
             const filterRow = document.querySelector(`[data-filter-id="${filterId}"]`);
             if (filterRow) {
@@ -1755,9 +1823,17 @@
             const filterRows = document.querySelectorAll('.custom-filter-row');
             
             filterRows.forEach(row => {
-                const field = row.querySelector('.filter-field').value.trim();
+                const selector = row.querySelector('.filter-field-selector');
+                const customInput = row.querySelector('.filter-field-custom');
                 const operator = row.querySelector('.filter-operator').value.trim();
                 const value = row.querySelector('.filter-value').value.trim();
+                
+                let field = '';
+                if (selector.value === 'custom') {
+                    field = customInput.value.trim();
+                } else {
+                    field = selector.value.trim();
+                }
                 
                 if (field && value) {
                     filters.push({ field, operator, value });
