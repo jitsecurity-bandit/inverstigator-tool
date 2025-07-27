@@ -249,9 +249,9 @@ app.post('/api/query', async (req, res) => {
     
     console.log(`Pagination complete. Total items collected: ${allItems.length}, Total scanned: ${totalScanned}, Queries executed: ${queryCount}`);
     
-    // Apply the original limit to the final results
-    const finalResults = allItems.slice(0, limit);
-    console.log(`Final results after applying limit ${limit}: ${finalResults.length} items`);
+    // Return all collected results without applying limit
+    const finalResults = allItems;
+    console.log(`Final results: ${finalResults.length} items`);
     
     // If no results, try a simple scan to see if table has any data
     if (finalResults.length === 0) {
@@ -514,9 +514,9 @@ app.post('/api/query-jit-events', async (req, res) => {
     
     console.log(`Pagination complete. Total items collected: ${allItems.length}, Total scanned: ${totalScanned}, Queries executed: ${queryCount}`);
     
-    // Apply the original limit to the final results
-    const finalResults = allItems.slice(0, limit);
-    console.log(`Final results after applying limit ${limit}: ${finalResults.length} items`);
+    // Return all collected results without applying limit
+    const finalResults = allItems;
+    console.log(`Final results: ${finalResults.length} items`);
     
     // If no results, try a simple scan to see if table has any data
     if (finalResults.length === 0) {

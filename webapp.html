@@ -1287,11 +1287,6 @@
                             </select>
                         </div>
 
-                        <div class="form-group limit-width">
-                            <label for="limit">Limit</label>
-                            <input type="number" id="limit" value="50" min="1" max="1000">
-                        </div>
-
                         <div class="form-group date-width">
                             <label for="start-date">Start Date</label>
                             <input type="datetime-local" id="start-date">
@@ -1781,7 +1776,6 @@
             const eventStatus = document.getElementById('event-status').value;
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
-            const limit = parseInt(document.getElementById('limit').value) || 50;
             const customFilters = getCustomFilters();
             
             // Validation based on query mode
@@ -1813,7 +1807,6 @@
                         status: executionStatus,
                         startDate: startDate ? new Date(startDate).toISOString() : null,
                         endDate: endDate ? new Date(endDate).toISOString() : null,
-                        limit,
                         customFilters
                     };
                 } else {
@@ -1823,7 +1816,6 @@
                         status: eventStatus,
                         startDate: startDate ? new Date(startDate).toISOString() : null,
                         endDate: endDate ? new Date(endDate).toISOString() : null,
-                        limit,
                         customFilters
                     };
                 }
